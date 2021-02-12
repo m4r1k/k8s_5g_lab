@@ -26,7 +26,7 @@ Everything that is built on top of the virtualization stack (in my case VMware v
 **<div align="center"><span style="color:red">Additionally, for the sake of explaining, limited automation is provided</span></div>**
 
 ## 4 - Lab High-Level
-#TODO - Pics from LucidChart
+![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
 
 The lab is quite linear. Fundamentally there are three PowerEdge and a Brocade Fabric:
 
@@ -375,9 +375,9 @@ Lastly, we can start our `virtualbmc-for-vsphere`. I've created a simple wrapper
 * Check the IPMI status
 * It's important to note that the vBMC name **MUST** match the VM's name in vSphere
 
-Additionally, being a lab, during a cold OCP start if vBMC is not already running, Metal3 will lose the ability to manage the nodes until the `power status` is reset (*indeed, this is something to report upstream*)
+Additionally, being a lab, during a cold OCP start if vBMC is not already running, Metal3 will lose the ability to manage the nodes until the `power status` is reset (*indeed, this is something to report upstream, losing connectivity with the BMC is relatively common: firmware upgrade, OoB upgrade, network outage etc*)
 
-#TODO add vBMC error pic
+![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/metal3_error.png)
 
 ```bash
 cat > /root/vBMC.sh << 'EOF'
