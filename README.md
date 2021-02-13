@@ -23,7 +23,22 @@ The primary aim for this document is deploying a 5G Telco Lab using mix of virtu
 
 Everything that is built on top of the virtualization stack (in my case VMware vSphere) is explained in greater detail, but the vSphere environment itself is only lightly touched.
 
-**<div align="center"><span style="color:red">Additionally, for the sake of explaining, limited automation is provided</span></div>**
+**<div align="center"><span style="color:red">For the sake of explanation, limited automation is provided</span></div>**
+
+### 3.1 - TODOs and upcoming releases
+In the near future the following topics will also be covered
+
+  - SR-IOV Operator (w/o the Webhook)
+  - K8s' CPU Manager
+  - PAO (w/ and w/o RT)
+  - FD.IO VPP App
+  - LACP Bond for physical nodes
+  - Use an external CA for the entire platform
+  - Local *cache* (OCI Registry + RHCOS Images)
+  - Disable the `ixgbevf` and `i40evf` modules
+  - MetalLB BGP
+  - Contour
+  - CNV
 
 ## 4 - Lab High-Level
 ![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
