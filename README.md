@@ -39,6 +39,8 @@ The lab is quite linear. Fundamentally there are three PowerEdge and a Brocade F
 	* The physical OCP Worker node is also Dell-EMC R630 with 2x Xeon E5-2678 v3 (24 cores/48 threads) and 64GB of memory
 	* There is a 3rd node, an R730xd (2x Xeon E5-2673 v4 + 128GB of memory) currently used only as a traffic generator
 
+More physical and connectivity details available in Google Spreadsheet [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing). [Brocade ICX config available as well](https://github.com/m4r1k/k8s_5g_lab/tree/main/switch).
+
 Software-wise, things are also very linear:
 
 * As the generic OS to provide all sort of functions (Routing, NAT, DHCP, DNS, NTP etc): CentOS Stream 8
