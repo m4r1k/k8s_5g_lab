@@ -1,6 +1,6 @@
 # OpenShift 5G Telco Lab
 ## 1 - Introduction
-The 5G Mobile Network standard is built from the ground up to be [cloud-native](https://www.lightreading.com/cloud-native-nfv/5gs-future-includes-a-cloud-native-architecture-complete-with-containers/d/d-id/762116). Over the years, and thanks to new standards, not only the legacy architectures have been decoupled ([CUPS](https://www.sdxcentral.com/articles/news/why-cups-is-a-critical-tool-in-the-5g-toolbox/2018/10/)), but even more flexible initiatives ([O-RAN](https://www.sdxcentral.com/5g/ran/definitions/what-is-open-ran-radio-access-network/)) are now taking over the marker.
+The 5G Mobile Network standard is built from the ground up to be [cloud-native](https://www.lightreading.com/cloud-native-nfv/5gs-future-includes-a-cloud-native-architecture-complete-with-containers/d/d-id/762116). Over the years, and thanks to new standards, not only the legacy architectures have been decoupled ([CUPS](https://www.sdxcentral.com/articles/news/why-cups-is-a-critical-tool-in-the-5g-toolbox/2018/10/)), but even more flexible initiatives ([O-RAN](https://www.sdxcentral.com/5g/ran/definitions/what-is-open-ran-radio-access-network/)) are now taking over the market.
 
 Many Telcos are moving to containerized architectures and ditching for good the legacy, which historically is built on layers of proprietary and specialized solutions.
 
