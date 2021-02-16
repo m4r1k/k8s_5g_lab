@@ -117,7 +117,7 @@ Similar to VMware vSphere, why OpenShift and not pure Kubernetes? Also here, man
 
 * As with all Red Hat Products, one gets a well-integrated and well-tested plateau of open source solutions that greatly expand the final value. See the [official architectural notes](https://docs.openshift.com/container-platform/4.6/architecture/architecture.html) about what OpenShift includes.
 * **Performance**: Telcos have some of the most bizarre performance requirements in the entire industry: network latency, packet-per-second rate, packet-drop rate, scheduling latency, fault detection latency, NUMA affinity, dedicated resources (CPU, L3 cache, Memory bandwidth, PCI devices) etc. Red Hat has been working for many years now to achieve deterministic performance (you can read more on my posts at [Tuning for Zero Packet Loss in OpenStack Part1](https://www.redhat.com/en/blog/tuning-zero-packet-loss-red-hat-openstack-platform-part-1), [Part2](https://www.redhat.com/en/blog/tuning-zero-packet-loss-red-hat-openstack-platform-part-2), and [Part3](https://www.redhat.com/en/blog/tuning-zero-packet-loss-red-hat-openstack-platform-part-3) and also [Going full deterministic using real-time in OpenStack](https://www.redhat.com/en/blog/going-full-deterministic-using-real-time-openstack)). That work, which started with RHEL and eventually included also OpenStack, is now covering OpenShift as well with PAO (or [Performance Addon Operator](https://docs.openshift.com/container-platform/4.6/scalability_and_performance/cnf-performance-addon-operator-for-low-latency-nodes.html)).
-* **Security**: in February 2019, to date, the major vulnerability of RunC ([CVE-2019-5736](https://nvd.nist.gov/vuln/detail/CVE-2019-5736)) allowed malicious containers to literally take control of the host. This made people literally scramble and yet OpenShift, [thanks to SELinux](https://access.redhat.com/security/cve/cve-2019-5736), was protected from the start.
+* **Security**: in February 2019, to date, the major vulnerability of RunC ([CVE-2019-5736](https://nvd.nist.gov/vuln/detail/CVE-2019-5736)) allowed malicious containers to literally take control of the host. This made people literally scramble, and yet OpenShift, [thanks to SELinux](https://access.redhat.com/security/cve/cve-2019-5736), was protected from the start. Even further, I strongly recommend [reading about the Security Context Constraints](https://www.openshift.com/blog/understanding-service-accounts-sccs) and how is [managed in OpenShift](https://www.openshift.com/blog/managing-sccs-in-openshift)
 * **Usability**: honestly, the OpenShift Console and the features in the OC (OpenShift Client) CLI are nothing less than spectacular.
 * **Immutability**: CoreOS makes the entire upgrade experience, finally, trivial.
 * **Observability**: OpenShift ships with pre-configured Alarms and Performance Monitoring ([based on Prometheus](https://docs.openshift.com/container-platform/4.6/monitoring/understanding-the-monitoring-stack.html)), and additionally fully supported Logging Operator ([based on EFK](https://docs.openshift.com/container-platform/4.6/logging/cluster-logging.html)) is also available.
@@ -801,7 +801,7 @@ spec:
       fileData:
         name: htpasswd-secret
 ```
-Then, as usual, let's apply it and then grant role `cluster-admin` and `registry-editor` to the `admin` user
+Then, as usual, let's apply it and then grant role `cluster-admin` and `registry-editor` to the `admin` user.
 
 ```bash
 oc apply -f <path/to/oauth/yaml>`
@@ -952,11 +952,12 @@ helm install nfs-subdir-external-provisioner \
      --set storageClass.defaultClass=true \
      --create-namespace ${_NAMESPACE}
 ```
-In case you face issues with the SCC, make sure to add it to the namespace
+In case you face issues during the volume recycle, this could be related to the SCC. Make sure to grant the SCC `hostmount-anyuid` to the nfs-subdir-external-provisioner service account `nfs-client-provisioner` in the deployed namespace `nfs-external-provisioner`.
 
 ```bash
-_NAMESPACE="nfs-external-provisioner"
-oc adm policy add-scc-to-user hostmount-anyuid system:serviceaccount:${_NAMESPACE}:nfs-client-provisioner
+oc adm policy add-scc-to-user hostmount-anyuid \
+  -n nfs-external-provisioner \
+  -z nfs-client-provisioner
 ```
 To actually see (and check) the result, run the following
 
@@ -1004,7 +1005,9 @@ _VER="v0.9.5"
 
 oc create -f https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests/namespace.yaml
 
-oc adm policy add-scc-to-user privileged -n metallb-system -z speaker
+oc adm policy add-scc-to-user privileged \
+  -n metallb-system \
+  -z speaker
 
 curl -s https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests/metallb.yaml | sed -e "/runAsUser: 65534/d" | oc create -f -
 
