@@ -39,6 +39,7 @@ In the near future the following topics will also be covered
   - MetalLB BGP
   - Contour
   - CNV
+  - Ditch NFS for Rook
 
 ## 4 - Lab High-Level
 ![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
