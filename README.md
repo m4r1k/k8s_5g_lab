@@ -92,7 +92,7 @@ A quick note about the Distributed Port Groups security configuration:
 Regarding the VMs configuration:
 
 * All the VM use the latest [vHW 18](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-789C3913-1053-4850-A0F0-E29C3D32B6DA.html)
-* The VM Guest OS Profile is configured for RHEL8 (the firmware is set to `EFI` and `Secure Boot` is disabled)
+* The VM Guest OS Profile is configured for RHEL8 (the firmware is set to `EFI` and `Secure Boot` is **disabled**). The OpenShift installer has only recently [gained the SecureBoot capability](https://github.com/openshift/installer/commit/39c6499), which will be *probably* available with OCP 4.8
 * `vNUMA` is disabled, exposing a single socket (aka equal number of `vCPU` and `Cores per socket`)
 * `I/O MMU` and `Hardware virtualization` (aka `Nested Virtualization`) are both enabled
 * VMXNET3 is the network para-virtualized driver
