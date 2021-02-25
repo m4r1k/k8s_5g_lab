@@ -64,7 +64,8 @@ Software-wise, things are also very linear:
 * OpenShift Container Platform version 4.6 (but the aim here is to have something entirely usable for future major releases)
 
 ## 5 - vSphere Architecture
-#TODO - Pic of vSphere
+<img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/vsphere.png" width="50%" />
+
 Let's address the elephant in the room: why VMware vSphere? Well, there are a couple of reasons, but before that let me state loud and clear, everything achived in this document can absolutely be done on plain Linux KVM. VMware vSphere is my choise and doesn't have to be yours: 
 
 * While OpenShift supports many on-premise platforms (OpenStack, oVirt, pure bare-metal, and vSphere), the power of an indeed Enterprise Virtualization Platform could play an essential role in how the lab evolves, and it could also act as a reference (for example, today real production on bare-metal has a minimum footprint of 7 nodes: 3x Master + 3x Infra + 1x Provisioner)
@@ -77,7 +78,7 @@ The vSphere architecture is also very lean:
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
 * DRS's CPU over-commit ratio is not configured
-* A dedicated VMFS6 datastore (using a local NVME) of 1TB for this Lab (running off a Samsung 970 Evo Plus)
+* A dedicated VMFS6 datastore (using a local NVME) of 2TB for this Lab (running off a Samsung 970 Evo Plus)
 * On the network side
 	* VMware vSS for the default *VM Network* that has Internet access (What's the reason? Laziness :-P). Being a single host, we have here also the default VMkernel
 	* VMware vDS (with two uplinks @ 10Gbps) for the *OCP Machine Network*
