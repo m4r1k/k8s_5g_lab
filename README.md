@@ -1005,12 +1005,12 @@ sudo podman search ${_HOST}/ --tls-verify=false
 ```
 
 ### 7.8 - LoadBalancer Class
-Something currently missing from OCP for Baremetal is a LoadBalancer. We're going to use MetalLB here.
+Something currently missing from OCP for Baremetal is a LoadBalancer. We're going to use MetalLB here. In this initial release, the focus is L2 and BGP will come later.
 
 * Create the `metallb-system` namespace
-* Grant privilaged status for `speaker` user in the `metallb-system` namespace
-* Deploy MetalLB removing the hardcoded UID
-* Generate a secret key
+* Grant SCC `privilaged` status for both `speaker` and `controller` ServiceAccounts in the `metallb-system` namespace
+* Deploy MetalLB
+* Generate a `generic` secret key that the speak will later use
 
 ```bash
 _VER="v0.9.5"
@@ -1019,11 +1019,14 @@ oc create -f https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests
 
 oc adm policy add-scc-to-user privileged \
   -n metallb-system \
-  -z speaker
+  -z speaker \
+  -z controller
 
-curl -s https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests/metallb.yaml | sed -e "/runAsUser: 65534/d" | oc create -f -
+oc create -f https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests/metallb.yaml
 
-oc create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+oc create secret generic memberlist \
+  -n metallb-system \
+  --from-literal=secretkey="$(openssl rand -base64 128)"
 ```
 Once done, we need to write the MetalLB L2 configuration (BGP will be covered in a future update of this document). In my lab, I've dedicated these 5 IPs from the Baremetal Network range.
 
@@ -1042,7 +1045,7 @@ data:
       - 10.0.11.20-10.0.11.24
 ```
 
-As usual `oc apply -f <path/to/meltallb/config>` and the MetalLB configuration is done.
+As usual `oc create -f <path/to/meltallb/config/yaml>` and the MetalLB configuration is done.
 
 ### 7.9 - Basic HelloWorld
 To prove that the setup is working, let's deploy a simple HelloWorld.
