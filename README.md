@@ -258,7 +258,7 @@ cat > /etc/hosts.dnsmasq << 'EOF'
 10.0.11.5	 openshift-worker-0
 10.0.11.6	 openshift-worker-1
 10.0.11.7	 openshift-worker-2
-10.0.11.11 openshift-worker-3
+10.0.11.11 openshift-worker-cnf-1
 10.0.11.18 api
 10.0.11.28 provisioner
 10.0.11.29 nfs-server
@@ -312,7 +312,7 @@ dhcp-host=00:50:56:8e:66:b0,openshift-master-2.ocp4.bm.nfv.local,10.0.11.4
 dhcp-host=00:50:56:8e:16:11,openshift-worker-0.ocp4.bm.nfv.local,10.0.11.5
 dhcp-host=00:50:56:8e:c9:8e,openshift-worker-1.ocp4.bm.nfv.local,10.0.11.6
 dhcp-host=00:50:56:8e:f2:26,openshift-worker-2.ocp4.bm.nfv.local,10.0.11.7
-dhcp-host=ec:f4:bb:dd:96:29,openshift-worker-3.ocp4.bm.nfv.local,10.0.11.11
+dhcp-host=ec:f4:bb:dd:96:29,openshift-worker-cnf-1.ocp4.bm.nfv.local,10.0.11.11
 EOF
 
 systemctl restart dnsmasq
@@ -840,30 +840,39 @@ It's time to connect to the OpenShift Console. The router already allows the com
 ### 7.6 - Adding Physical OpenShift Nodes
 Now let's add some real physical nodes to the cluster. It's important to create a new MachineSet in this way, we have a clear demarcation mark between real physical nodes and virtual ones. This is gonna be instrumental later on for PAO. *Happening through the `hostSelector.matchLabels` who looks for `node-role.kubernetes.io/worker-cnf`*
 
-Follows the working template to import, be aware, you will need to customize RHCOS image `spec.template.spec.providerSpec.value.checksum` and `spec.template.spec.providerSpec.value.url`. You can see them by using `oc describe MachineSet -n openshift-machine-api`. Additionally also the Cluster ID needs to be contextualized use `oc get -o jsonpath='{.status.infrastructureName}' infrastructure cluster` to retrive it (in my case `ocp4-d9lqz`).
+Follows a sample MachineSet template to later manage real baremetal nodes. I'm calling it `worker-cnf`. **Be aware**, you will need to customize:
+* RHCOS image URL `spec.template.spec.providerSpec.value.url`
+* RHCOS image checksum `spec.template.spec.providerSpec.value.checksum`
+* The *infrastructure_id*
 
-```yaml
+Follows a handy script that does everything
+```bash
+_URL="$(oc get MachineSet -n openshift-machine-api -o jsonpath='{.items[0].spec.template.spec.providerSpec.value.image.url}')"
+_CHECKSUM="$(oc get MachineSet -n openshift-machine-api -o jsonpath='{.items[0].spec.template.spec.providerSpec.value.image.checksum}')"
+_INFRAID="$(oc get Infrastructure cluster -o jsonpath='{.status.infrastructureName}')"
+
+cat > ~/worker-cnf_machineSet.yaml << EOF
 apiVersion: machine.openshift.io/v1beta1
 kind: MachineSet
 metadata:
   creationTimestamp: null
   labels:
-    machine.openshift.io/cluster-api-cluster: ocp4-d9lqz
-  name: ocp4-d9lqz-worker-cnf
+    machine.openshift.io/cluster-api-cluster: ${_INFRAID}
+  name: ${_INFRAID}-worker-cnf
   namespace: openshift-machine-api
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
-      machine.openshift.io/cluster-api-cluster: ocp4-d9lqz
-      machine.openshift.io/cluster-api-machineset: ocp4-d9lqz-worker-cnf
+      machine.openshift.io/cluster-api-cluster: ${_INFRAID}
+      machine.openshift.io/cluster-api-machineset: ${_INFRAID}-worker-cnf
   template:
     metadata:
       labels:
-        machine.openshift.io/cluster-api-cluster: ocp4-d9lqz
+        machine.openshift.io/cluster-api-cluster: ${_INFRAID}
         machine.openshift.io/cluster-api-machine-role: worker-cnf
         machine.openshift.io/cluster-api-machine-type: worker-cnf
-        machine.openshift.io/cluster-api-machineset: ocp4-d9lqz-worker-cnf
+        machine.openshift.io/cluster-api-machineset: ${_INFRAID}-worker-cnf
     spec:
       taints:
       - effect: NoSchedule
@@ -880,25 +889,26 @@ spec:
               node-role.kubernetes.io/worker-cnf: ""
           image:
             checksum: >-
-              http://10.0.10.3:6180/images/rhcos-46.82.202011260640-0-openstack.x86_64.qcow2/rhcos-46.82.202011260640-0-compressed.x86_64.qcow2.md5sum
+              ${_CHECKSUM}
             url: >-
-              http://10.0.10.3:6180/images/rhcos-46.82.202011260640-0-openstack.x86_64.qcow2/rhcos-46.82.202011260640-0-compressed.x86_64.qcow2
+              ${_URL}
           metadata:
             creationTimestamp: null
           userData:
             name: worker-user-data
+EOF
 ```
 
 The template can be deployed with a simple `oc apply -f <path/to/machine/set/yaml>` ([BTW, about `create` vs. `apply`](https://stackoverflow.com/questions/47369351/kubectl-apply-vs-kubectl-create)).
 
-Once that's done, we can also provision the new node, follows my working template. Ensure the same labels between the MachineSet's `hostSelector.matchLabels` and `metadata.labels` here.
+Once that's done, we can also provision a new node, follows again a sample template. Ensure the same labels between the MachineSet's `hostSelector.matchLabels` and `metadata.labels` here. Same goes for the authentication credentails and the mac-address
 
 ```yaml
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: openshift-worker-3-bmc-secret
+  name: openshift-worker-cnf-1-bmc-secret
   namespace: openshift-machine-api
 type: Opaque
 data:
@@ -908,7 +918,7 @@ data:
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
-  name: openshift-worker-3
+  name: openshift-worker-cnf-1
   namespace: openshift-machine-api
   labels:
     node-role.kubernetes.io/worker-cnf: ""
@@ -917,34 +927,19 @@ spec:
   bootMACAddress: ec:f4:bb:dd:96:28
   bmc:
     address: redfish://192.168.178.232/redfish/v1/Systems/System.Embedded.1
-    credentialsName: openshift-worker-3-bmc-secret
+    credentialsName: openshift-worker-cnf-1-bmc-secret
     disableCertificateVerification: True
 ```
 
-Also this time an `oc apply -f <path/to/node/yaml>` gets the job done. To check the status use `oc get BareMetalHost -n openshift-machine-api` once it goes into provisioning's state `ready`, you can scale the MachineSet and the node will be included into the cluster `oc scale --replicas=1 machineset ocp4-d9lqz-worker-cnf -n openshift-machine-api`
+Also this time an `oc apply -f <path/to/node/yaml>` gets the job done.
 
-This is how it will look like once deployed
+To check the status use `oc get BareMetalHost -n openshift-machine-api` once it goes into provisioning's state `ready`, the MachineSet will automatically enroll it.
 
-```console
-oc get BareMetalHost,Nodes -n openshift-machine-api
-NAME                                         STATUS   PROVISIONING STATUS      CONSUMER                           BMC                                                              HARDWARE PROFILE   ONLINE   ERROR
-baremetalhost.metal3.io/openshift-master-0   OK       externally provisioned   ocp4-d9lqz-master-0                ipmi://192.168.178.25                                                               true
-baremetalhost.metal3.io/openshift-master-1   OK       externally provisioned   ocp4-d9lqz-master-1                ipmi://192.168.178.26                                                               true
-baremetalhost.metal3.io/openshift-master-2   OK       externally provisioned   ocp4-d9lqz-master-2                ipmi://192.168.178.27                                                               true
-baremetalhost.metal3.io/openshift-worker-0   OK       provisioned              ocp4-d9lqz-worker-0-z6vwn          ipmi://192.168.178.28                                            unknown            true
-baremetalhost.metal3.io/openshift-worker-1   OK       provisioned              ocp4-d9lqz-worker-0-9rwnf          ipmi://192.168.178.29                                            unknown            true
-baremetalhost.metal3.io/openshift-worker-2   OK       provisioned              ocp4-d9lqz-worker-0-g2227          ipmi://192.168.178.30                                            unknown            true
-baremetalhost.metal3.io/openshift-worker-3   OK       provisioned              ocp4-d9lqz-worker-cnf-6bbkc   redfish://192.168.178.232/redfish/v1/Systems/System.Embedded.1   unknown            true
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/dell_pxe.png" width="75%" />
 
-NAME                      STATUS   ROLES    AGE     VERSION
-node/openshift-master-0   Ready    master   27h     v1.19.0+9c69bdc
-node/openshift-master-1   Ready    master   27h     v1.19.0+9c69bdc
-node/openshift-master-2   Ready    master   27h     v1.19.0+9c69bdc
-node/openshift-worker-0   Ready    worker   27h     v1.19.0+9c69bdc
-node/openshift-worker-1   Ready    worker   27h     v1.19.0+9c69bdc
-node/openshift-worker-2   Ready    worker   27h     v1.19.0+9c69bdc
-node/openshift-worker-3   Ready    worker   3h10m   v1.19.0+9c69bdc
-```
+This is how it looks once all done
+
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/ocp_nodes.png" width="75%" />
 
 ### 7.7 - NFS Storage Class and OCP internal Registry
 Next step is to lavarage the RHEL NFS Server for persistent storage. Luckly this is uber easy (don't forget to [install the `helm` CLI](https://mirror.openshift.com/pub/openshift-v4/clients/helm/latest)). See the official documentation for [all the supported options by the Helm Chart](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/charts/nfs-subdir-external-provisioner/README.md) (such as `storageClass.accessModes`, `nfs.mountOptions`, `storageClass.reclaimPolicy`, etc)
