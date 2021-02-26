@@ -306,13 +306,13 @@ dhcp-option=3,10.0.11.30
 dhcp-option=42,10.0.11.30
 server=10.0.11.30
 
-dhcp-host=00:50:56:8e:56:31,openshift-master-0.ocp4.bm.nfv.local,10.0.11.2
-dhcp-host=00:50:56:8e:8e:6d,openshift-master-1.ocp4.bm.nfv.local,10.0.11.3
-dhcp-host=00:50:56:8e:66:b0,openshift-master-2.ocp4.bm.nfv.local,10.0.11.4
-dhcp-host=00:50:56:8e:16:11,openshift-worker-0.ocp4.bm.nfv.local,10.0.11.5
-dhcp-host=00:50:56:8e:c9:8e,openshift-worker-1.ocp4.bm.nfv.local,10.0.11.6
-dhcp-host=00:50:56:8e:f2:26,openshift-worker-2.ocp4.bm.nfv.local,10.0.11.7
-dhcp-host=ec:f4:bb:dd:96:29,openshift-worker-cnf-1.ocp4.bm.nfv.local,10.0.11.11
+dhcp-host=00:50:56:8e:56:31,openshift-master-0,10.0.11.2
+dhcp-host=00:50:56:8e:8e:6d,openshift-master-1,10.0.11.3
+dhcp-host=00:50:56:8e:66:b0,openshift-master-2,10.0.11.4
+dhcp-host=00:50:56:8e:16:11,openshift-worker-0,10.0.11.5
+dhcp-host=00:50:56:8e:c9:8e,openshift-worker-1,10.0.11.6
+dhcp-host=00:50:56:8e:f2:26,openshift-worker-2,10.0.11.7
+dhcp-host=ec:f4:bb:dd:96:29,openshift-worker-cnf-1,10.0.11.11
 EOF
 
 systemctl restart dnsmasq
