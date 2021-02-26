@@ -1051,20 +1051,26 @@ As usual `oc create -f <path/to/meltallb/config/yaml>` and the MetalLB configura
 To prove that the setup is working, let's deploy a simple HelloWorld.
 
 ```bash
-kubectl create namespace hello-k8s
-kubectl apply -f https://raw.githubusercontent.com/paulbouwer/hello-kubernetes/master/yaml/hello-kubernetes.yaml -n hello-k8s
+oc new-project hello-k8s
+oc create -f https://raw.githubusercontent.com/paulbouwer/hello-kubernetes/master/yaml/hello-kubernetes.yaml
 ```
-To check the status, run the following commands
+Let's verify the Deployment, Pods, and Service 
 
 ```bash
-kubectl get pods -n hello-k8s
-kubectl get deployment -n hello-k8s
-kubectl get services -n hello-k8s
+oc get deployment,pods,services
+```
+
+With my Baremetal network, I have the following output
+```console
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/hello-kubernetes   3/3     3            3           15m
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/hello-kubernetes-767d49787b-blwvg   1/1     Running   0          15m
+pod/hello-kubernetes-767d49787b-jbld6   1/1     Running   0          15m
+pod/hello-kubernetes-767d49787b-nft9f   1/1     Running   0          15m
+
+NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+service/hello-kubernetes   LoadBalancer   172.30.197.195   10.0.11.20    80:32035/TCP   15m
 ```
 Connecting to the LoadBalancer External-IP, the HelloWorld should be available
-
-```bash
-$ oc get services -n hello-k8s
-NAME               TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
-hello-kubernetes   LoadBalancer   172.30.247.222   10.0.11.20    80:32742/TCP   24h
-```
