@@ -719,7 +719,7 @@ openshift-baremetal-install create cluster --dir ~/manifests --log-level debug
 
 Follows the installation logs
 ```console
-DEBUG OpenShift Installer 4.6.12
+DEBUG OpenShift Installer 4.6.16
 DEBUG Built from commit eded5eb5b6c77e2af2a2c537093da8bf3711f494
 <SNIP>
 DEBUG module.masters.ironic_node_v1.openshift-master-host[2]: Creating...
@@ -745,7 +745,7 @@ DEBUG module.masters.ironic_deployment.openshift-master-deployment[1]: Creation 
 DEBUG module.masters.ironic_deployment.openshift-master-deployment[0]: Creation complete after 1m31s
 <SNIP>
 DEBUG Apply complete! Resources: 13 added, 0 changed, 0 destroyed.
-DEBUG OpenShift Installer 4.6.12
+DEBUG OpenShift Installer 4.6.16
 DEBUG Built from commit eded5eb5b6c77e2af2a2c537093da8bf3711f494
 INFO Waiting up to 20m0s for the Kubernetes API at https://api.ocp4.bm.nfv.local:6443...
 INFO API v1.19.0+9c69bdc up
@@ -754,18 +754,18 @@ DEBUG Bootstrap status: complete
 INFO Destroying the bootstrap resources...
 <SNIP>
 INFO Waiting up to 1h0m0s for the cluster at https://api.ocp4.bm.nfv.local:6443 to initialize...
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.12: 30% complete
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.12: 42% complete
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.12: 61% complete
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.12: 67% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 30% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 42% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 61% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 67% complete
 DEBUG Still waiting for the cluster to initialize: Multiple errors are preventing progress:
 * Could not update build "cluster" (19 of 617)
 <SNIP>
 * Could not update oauthclient "console" (379 of 617)
 <SNIP>
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.12: 95% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 95% complete
 <SNIP>
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.12: 100% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 100% complete
 DEBUG Cluster is initialized
 INFO Waiting up to 10m0s for the openshift-console route to be created...
 <SNIP>
