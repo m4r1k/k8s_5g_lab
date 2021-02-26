@@ -715,7 +715,11 @@ cp ~/install-config.yaml ~/manifests/
 openshift-baremetal-install create cluster --dir ~/manifests --log-level debug
 ```
 
-#TODO PXE BOOT Console
+Follows the vSphere events during the worker nodes deployment
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/vsphere_events.png" width="75%" />
+
+Follows a worker node console during the PXE boot
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/worker_pxe.png" width="75%" />
 
 Follows the installation logs
 ```console
@@ -829,8 +833,7 @@ oc delete secrets kubeadmin -n kube-system --ignore-not-found=true
 ```
 
 It's time to connect to the OpenShift Console. The router already allows the communication both ways. Simply add a `static route` and also use the router as your DNS.
-
-# TODO Console Pic
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/ocp_console.png" width="75%" />
 
 ### 7.6 - Adding Physical OpenShift Nodes
 Now let's add some real physical nodes to the cluster. It's important to create a new MachineSet in this way, we have a clear demarcation mark between real physical nodes and virtual ones. This is gonna be instrumental later on for PAO. *Happening through the `hostSelector.matchLabels` who looks for `node-role.kubernetes.io/worker-cnf`*
