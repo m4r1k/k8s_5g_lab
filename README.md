@@ -795,7 +795,9 @@ Let's then create a secret with the admin's user credential
 ```bash
 export KUBECONFIG=~/manifests/auth/kubeconfig
 
-oc create secret generic htpasswd-secret --from-file=htpasswd=/home/kni/htpasswd -n openshift-config
+oc create secret generic htpasswd-secret \
+    --from-file=htpasswd=/home/kni/htpasswd \
+    -n openshift-config
 ```
 
 We're now going to create a config file for `OAuth` where we say to use `HTPasswd` as another Identity Provider and to take the `htpasswd` file from the secret. Follows my working file
