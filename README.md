@@ -319,7 +319,7 @@ systemctl restart dnsmasq
 ```
 Now that we have it, let's also use DNSMasq for local resolution
 
-```
+```bash
 nmcli connection modify ens160 ipv4.dns 127.0.0.1
 nmcli connection modify ens160 ipv4.dns-search ocp4.bm.nfv.local
 ```
@@ -453,7 +453,7 @@ dnf install nfs-utils nfs4-acl-tools sysstat -y
 ```
 Let's enable the NFS Server
 
-```
+```bash
 systemctl enable --now nfs-server
 ```
 
@@ -1012,7 +1012,7 @@ Something currently missing from OCP for Baremetal is a LoadBalancer. We're goin
 * Deploy MetalLB removing the hardcoded UID
 * Generate a secret key
 
-```
+```bash
 _VER="v0.9.5"
 
 oc create -f https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests/namespace.yaml
