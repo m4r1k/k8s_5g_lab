@@ -100,9 +100,8 @@ Regarding the VMs configuration:
 * `vNUMA` is disabled, exposing a single socket (aka equal number of `vCPU` and `Cores per socket`)
 * `I/O MMU` and `Hardware virtualization` (aka `Nested Virtualization`) are both enabled
 * VMXNET3 is the network para-virtualized driver
-* VMware NVME is the storage controller for all non-OCP VMs (for who's asking about PVSCSI vs. NVME, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
-* VMware PVSCSI is the storage controller for all OCP VMs (*no matter what, I wasn't able to use the NVME as root device even with [Root device hints](https://docs.openshift.com/container-platform/4.6/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#root-device-hints_ipi-install-configuration-files)*)
-
+* VMware NVME is the storage controller for all VMs (for who's asking about PVSCSI vs. NVME, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
+  * In the `install-config.yaml` the [Root device hints](https://docs.openshift.com/container-platform/4.6/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#root-device-hints_ipi-install-configuration-files) is specified referring to `deviceName: "/dev/nvme0n1"`
 ### 5.1 - Virtual Baseboard Management Controller
 The only real peculiarity in this environment is that OpenShift is deployed using IPI for Bare-metal on a mix vSphere and physical hardware. VMware doesn't have something like a virtual IPMI device; hence a vBMC solution is used.
 
@@ -148,12 +147,12 @@ VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*|vNIC2 *(ens1
 ----------:|:-:|:--:|:-----:|:--------:|:--------:|:--------------:|:--------------:|:------------:|:-------------:|
 Router     |18 |4   |16 GB  |20GiB     |n/a       |VM Network      |OCP Baremetal   |NVME          |VMXNET3        |
 Provisioner|18 |4   |16 GB  |70GiB     |n/a       |OCP Baremetal   |OCP Provisioning|NVME          |VMXNET3        |
-Master-0   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |PVSCSI        |VMXNET3        |
-Master-1   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |PVSCSI        |VMXNET3        |
-Master-2   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |PVSCSI        |VMXNET3        |
-Worker-0   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |PVSCSI        |VMXNET3        |
-Worker-1   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |PVSCSI        |VMXNET3        |
-Worker-2   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |PVSCSI        |VMXNET3        |
+Master-0   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Master-1   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Master-2   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Worker-0   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Worker-1   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Worker-2   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
 NFS Server |18 |2   |16 GB  |70GiB     |300GiB    |OCP Baremetal   |n/a             |NVME          |VMXNET3        |
 
 Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the lab in much greater detail.
@@ -648,6 +647,8 @@ platform:
           username: root
           password: calvin
         bootMACAddress: 00:50:56:8e:3b:92
+        rootDeviceHints:
+          deviceName: "/dev/nvme0n1"
       - name: openshift-master-1
         role: master
         bmc:
@@ -655,6 +656,8 @@ platform:
           username: root
           password: calvin
         bootMACAddress: 00:50:56:8e:81:cf
+        rootDeviceHints:
+          deviceName: "/dev/nvme0n1"
       - name: openshift-master-2
         role: master
         bmc:
@@ -662,6 +665,8 @@ platform:
           username: root
           password: calvin
         bootMACAddress: 00:50:56:8e:50:a1
+        rootDeviceHints:
+          deviceName: "/dev/nvme0n1"
       - name: openshift-worker-0
         role: master
         bmc:
@@ -669,6 +674,8 @@ platform:
           username: root
           password: calvin
         bootMACAddress: 00:50:56:8e:b5:6e
+        rootDeviceHints:
+          deviceName: "/dev/nvme0n1"
       - name: openshift-worker-1
         role: master
         bmc:
@@ -676,6 +683,8 @@ platform:
           username: root
           password: calvin
         bootMACAddress: 00:50:56:8e:11:9f
+        rootDeviceHints:
+          deviceName: "/dev/nvme0n1"
       - name: openshift-worker-2
         role: master
         bmc:
@@ -683,6 +692,8 @@ platform:
           username: root
           password: calvin
         bootMACAddress: 00:50:56:8e:72:bf
+        rootDeviceHints:
+          deviceName: "/dev/nvme0n1"
 fips: false
 pullSecret: '{"auths":{<SNIP>}}'
 sshKey: 'ssh-rsa <SNIP>'
