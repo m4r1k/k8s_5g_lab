@@ -208,7 +208,7 @@ Once concluded, several packages are installed (the list is self-explanatory)
 
 ```bash
 dnf install -y bash-completion bind-utils cockpit cockpit-storaged \
-               chrony httpd git httpd-tools jq lsof open-vm-tools \
+               chrony git httpd-tools jq lsof open-vm-tools \
                podman-docker tcpdump tmux vim
 
 dnf module -y install container-tools
