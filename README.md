@@ -1070,4 +1070,63 @@ pod/hello-kubernetes-767d49787b-nft9f   1/1     Running   0          15m
 NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
 service/hello-kubernetes   LoadBalancer   172.30.197.195   10.0.11.20    80:32035/TCP   15m
 ```
-Connecting to the LoadBalancer External-IP, the HelloWorld should be available
+Connecting to the LoadBalancer External-IP, the HelloWorld should be available.
+
+Let's now ensure the Pods will be running on the `worker-cnf` node. First let's change the `tolerations` matching the `taints`. This can be done using the `patch` command over the `deployment` command or directly editing it  
+
+```json
+oc patch deployment hello-kubernetes -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "tolerations": [
+          {
+            "key": "node-function",
+            "operator": "Equal",
+            "value": "cnf"
+          }
+        ]
+      }
+    }
+  }
+}'
+```
+
+Now, this is a bit ugly, but to have all 3 Pods on the same node, we've gotta define a `nodeAffinity` to the worker hostname.
+```json
+oc patch deployment hello-kubernetes -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "affinity": {
+          "nodeAffinity": {
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "nodeSelectorTerms": [
+                {
+                  "matchExpressions": [
+                    {
+                      "key": "kubernetes.io/hostname",
+                      "operator": "In",
+                      "values": [
+                        "openshift-worker-cnf-1"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+The Pods are now all running on the same Worker node.
+```console
+oc get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE                     NOMINATED NODE   READINESS GATES
+hello-kubernetes-5cb945f5f5-8g74v   1/1     Running   0          4m24s   10.130.2.9   openshift-worker-cnf-1   <none>           <none>
+hello-kubernetes-5cb945f5f5-94vqx   1/1     Running   0          4m27s   10.130.2.8   openshift-worker-cnf-1   <none>           <none>
+hello-kubernetes-5cb945f5f5-t52hc   1/1     Running   0          4m31s   10.130.2.7   openshift-worker-cnf-1   <none>           <none>
+```
