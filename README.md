@@ -199,14 +199,7 @@ After the CentOS Stream 8 is installed, all the packages are updated
 * Update all the packages
 
 ```bash
-cat > /etc/yum.repos.d/Advanced-Virtualization.repo << 'EOF'
-[Advanced-Virtualization]
-name=CentOS Stream 8 - Advanced Virtualization
-baseurl=http://mirror.centos.org/centos/8/virt/x86_64/advanced-virtualization/
-enabled=1
-gpgcheck=0
-EOF
-
+dnf install -y centos-release-advanced-virtualization
 dnf makecache
 dnf module enable -y container-tools:rhel8
 dnf module disable -y virt
