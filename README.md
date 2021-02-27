@@ -159,7 +159,7 @@ Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.
 
 The OpenShift Domain configuration
 
-* Base Domain: `bm.nfv.local`
+* Base Domain: `bm.nfv.io`
 * Cluster Name: `ocp4`
 
 ### 6.1 - Performance Addon Operator aka PAO
@@ -245,7 +245,7 @@ systemctl is-enabled chronyd || systemctl enable --now chronyd
 Now it's time for the DNS
 
 * Internal DNS Resolution
-* Basic DNSMasq configuration with the local domain `ocp4.bm.nfv.local` and name resolution caching
+* Basic DNSMasq configuration with the local domain `ocp4.bm.nfv.io` and name resolution caching
 * If running, restart the service
 * If not configured to start at boot, enable it and start it now
 
@@ -274,7 +274,7 @@ cat > /etc/dnsmasq.d/dns.dnsmasq << 'EOF'
 domain-needed
 bind-dynamic
 bogus-priv
-domain=ocp4.bm.nfv.local
+domain=ocp4.bm.nfv.io
 interface=ens160,ens192
 no-dhcp-interface=ens160
 no-hosts
@@ -282,7 +282,7 @@ addn-hosts=/etc/hosts.dnsmasq
 resolv-file=/etc/resolv.dnsmasq
 expand-hosts
 cache-size=500
-address=/.ocp4.bm.nfv.local/10.0.11.19
+address=/.ocp4.bm.nfv.io/10.0.11.19
 EOF
 
 systemctl is-active dnsmasq && systemctl restart dnsmasq
@@ -300,7 +300,6 @@ cat > /etc/dnsmasq.d/dhcp.dnsmasq << 'EOF'
 domain-needed
 bind-dynamic
 bogus-priv
-domain=ocp4.bm.nfv.local
 dhcp-range=10.0.11.2,10.0.11.17
 dhcp-option=3,10.0.11.30
 dhcp-option=42,10.0.11.30
@@ -321,7 +320,7 @@ Now that we have it, let's also use DNSMasq for local resolution
 
 ```bash
 nmcli connection modify ens160 ipv4.dns 127.0.0.1
-nmcli connection modify ens160 ipv4.dns-search ocp4.bm.nfv.local
+nmcli connection modify ens160 ipv4.dns-search ocp4.bm.nfv.io
 ```
 Let's configure routing capability
 
@@ -609,7 +608,7 @@ Follows you can find my working `install-config`. The initial deployment goes wi
 
 ```yaml
 apiVersion: v1
-baseDomain: bm.nfv.local
+baseDomain: bm.nfv.io
 metadata:
   name: ocp4
 networking:
@@ -809,7 +808,7 @@ metadata:
   name: cluster
 spec:
   identityProviders:
-  - name: ocp4.bm.nfv.local
+  - name: ocp4.bm.nfv.io
     mappingMethod: claim
     type: HTPasswd
     htpasswd:
@@ -827,7 +826,7 @@ oc policy add-role-to-user registry-editor admin
 Last step, let's first test the new login credentials and **IF SUCCESFUL** delete the `kubeadmin` user
 ```bash
 unset KUBECONFIG
-oc login https://api.ocp4.bm.nfv.local:6443 \
+oc login https://api.ocp4.bm.nfv.io:6443 \
     --username=admin --password=admin \
     --insecure-skip-tls-verify=true
 
