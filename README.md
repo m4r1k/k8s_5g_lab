@@ -1098,10 +1098,10 @@ oc patch deployment hello-kubernetes -p '{
                 {
                   "matchExpressions": [
                     {
-                      "key": "kubernetes.io/hostname",
+                      "key": "node-role.kubernetes.io/worker-cnf",
                       "operator": "In",
                       "values": [
-                        "openshift-worker-cnf-1"
+                        ""
                       ]
                     }
                   ]
