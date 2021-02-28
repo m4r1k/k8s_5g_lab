@@ -242,8 +242,10 @@ echo "allow 10.0.11.0/27" | tee -a /etc/chrony.conf
 systemctl is-active chronyd && systemctl restart chronyd
 systemctl is-enabled chronyd || systemctl enable --now chronyd
 ```
-Now it's time for the DNS
 
+Before actually doing the DNS configuration, if you come across some DNS issues, I strongly suggest reading the nothing less than amazing @rcarrata [DNS deep-dive](https://rcarrata.com/openshift/dns-deep-dive-in-openshift/). Additionally, also Red Hat has a nice [DNS Troubleshooting guide](https://access.redhat.com/solutions/3804501).
+
+Now on the DNS configuration:
 * Internal DNS Resolution
 * Basic DNSMasq configuration with the local domain `ocp4.bm.nfv.io` and name resolution caching
 * If running, restart the service
