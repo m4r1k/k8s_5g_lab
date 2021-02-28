@@ -166,7 +166,7 @@ The OpenShift Domain configuration
 
 [![Hello this is PAO](https://github.com/openshift-kni/performance-addon-operators/raw/master/docs/interactions/diagram.png)](https://github.com/openshift-kni/performance-addon-operators/blob/master/docs/interactions/diagram.png)
 
-If you don't know what PAO is, I strongly encourage you to [read the official documentation](https://docs.openshift.com/container-platform/4.7/scalability_and_performance/cnf-performance-addon-operator-for-low-latency-nodes.html). In short, is a [Tuned CPU-Partitioning](https://github.com/redhat-performance/tuned/tree/master/profiles/cpu-partitioning) on steroid taking into account also the K8s Topology Manager. Of course, PAO is applied only to the physical worker node(s).
+If you don't know what PAO is, I strongly encourage you to [read the official documentation](https://docs.openshift.com/container-platform/4.7/scalability_and_performance/cnf-performance-addon-operator-for-low-latency-nodes.html). In short, a [Tuned CPU-Partitioning](https://github.com/redhat-performance/tuned/tree/master/profiles/cpu-partitioning) on steroid includes [additional profiles and specific tuning for a containerization platform](https://github.com/openshift-kni/performance-addon-operators/blob/master/build/assets/tuned/openshift-node-performance) and takes into account also the K8s Topology Manager. Of course, PAO is applied only to the real physical worker nodes.
 
 * **CPU**: One `reserved` full core (aka 2 threads) per NUMA node, all the others `isolated` for the applications
 * **Memory**: 16GB available for the OS and infra Pods while all the rest configured as 1GB HugePages
