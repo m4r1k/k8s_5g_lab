@@ -586,7 +586,6 @@ _URL="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${_VERSION}"
 
 _RELEASE_IMAGE=$(curl -s ${_URL}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
 
-
 curl -s ${_URL}/openshift-client-linux.tar.gz | tar zxvf - oc
 sudo mv -f oc /usr/local/bin
 oc adm release extract \
@@ -872,6 +871,8 @@ spec:
         value: cnf
       metadata:
         creationTimestamp: null
+        labels:
+          node-role.kubernetes.io/worker-cnf: ""
       providerSpec:
         value:
           apiVersion: baremetal.cluster.k8s.io/v1alpha1
