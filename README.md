@@ -1065,6 +1065,8 @@ service/hello-kubernetes   LoadBalancer   172.30.197.195   10.0.11.20    80:3203
 ```
 Connecting to the LoadBalancer External-IP, the HelloWorld should be available.
 
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/basic_helloworld.png" width="75%" />
+
 Let's now ensure the Pods will be running on the `worker-cnf` node. First let's change the `tolerations` matching the `taints`. This can be done using the `patch` command over the `deployment` command or directly editing it  
 
 ```json
