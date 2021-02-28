@@ -581,7 +581,7 @@ As a first step, we need to install a different kind of `openshift-install` clie
 _CMD=openshift-baremetal-install
 _PULLSECRETFILE=~/pull-secret.json
 _DIR=/home/kni/
-_VERSION=latest-4.6
+_VERSION=latest-4.7
 _URL="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${_VERSION}"
 
 _RELEASE_IMAGE=$(curl -s ${_URL}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
@@ -722,8 +722,11 @@ Follows a worker node console during the PXE boot
 
 Follows the installation logs
 ```console
-DEBUG OpenShift Installer 4.6.16
-DEBUG Built from commit eded5eb5b6c77e2af2a2c537093da8bf3711f494
+DEBUG OpenShift Installer 4.7.0
+DEBUG Built from commit 98e11541c24e95c864328b9b35c64b77836212ed
+<SNIP>
+DEBUG Generating Cluster...
+INFO Creating infrastructure resources...
 <SNIP>
 DEBUG module.masters.ironic_node_v1.openshift-master-host[2]: Creating...
 DEBUG module.masters.ironic_node_v1.openshift-master-host[1]: Creating...
@@ -731,57 +734,47 @@ DEBUG module.masters.ironic_node_v1.openshift-master-host[0]: Creating...
 DEBUG module.bootstrap.libvirt_pool.bootstrap: Creating...
 DEBUG module.bootstrap.libvirt_ignition.bootstrap: Creating...
 <SNIP>
-DEBUG module.bootstrap.libvirt_pool.bootstrap: Creation complete after 2m0s
+DEBUG module.bootstrap.libvirt_volume.bootstrap-base: Creation complete after 4m59s
+DEBUG module.bootstrap.libvirt_ignition.bootstrap: Creation complete after 4m59s
 <SNIP>
-DEBUG module.bootstrap.libvirt_ignition.bootstrap: Creation complete after 2m0s
-<SNIP>
-DEBUG module.masters.ironic_node_v1.openshift-master-host[2]: Creation complete after 17m13s
-DEBUG module.masters.ironic_node_v1.openshift-master-host[1]: Creation complete after 17m13s
-DEBUG module.masters.ironic_node_v1.openshift-master-host[0]: Creation complete after 17m13s
+DEBUG module.masters.ironic_node_v1.openshift-master-host[1]: Creation complete after 24m30s
+DEBUG module.masters.ironic_node_v1.openshift-master-host[2]: Creation complete after 25m20s
+DEBUG module.masters.ironic_node_v1.openshift-master-host[0]: Creation complete after 26m11s
 <SNIP>
 DEBUG module.masters.ironic_deployment.openshift-master-deployment[1]: Creating...
 DEBUG module.masters.ironic_deployment.openshift-master-deployment[0]: Creating...
 DEBUG module.masters.ironic_deployment.openshift-master-deployment[2]: Creating...
 <SNIP>
-DEBUG module.masters.ironic_deployment.openshift-master-deployment[2]: Creation complete after 1m31s
-DEBUG module.masters.ironic_deployment.openshift-master-deployment[1]: Creation complete after 1m31s
-DEBUG module.masters.ironic_deployment.openshift-master-deployment[0]: Creation complete after 1m31s
+DEBUG module.masters.ironic_deployment.openshift-master-deployment[0]: Creation complete after 1m32s
+DEBUG module.masters.ironic_deployment.openshift-master-deployment[2]: Creation complete after 2m2s
+DEBUG module.masters.ironic_deployment.openshift-master-deployment[1]: Creation complete after 2m2s
 <SNIP>
-DEBUG Apply complete! Resources: 13 added, 0 changed, 0 destroyed.
-DEBUG OpenShift Installer 4.6.16
-DEBUG Built from commit eded5eb5b6c77e2af2a2c537093da8bf3711f494
-INFO Waiting up to 20m0s for the Kubernetes API at https://api.ocp4.bm.nfv.local:6443...
-INFO API v1.19.0+9c69bdc up
+DEBUG Apply complete! Resources: 14 added, 0 changed, 0 destroyed.
+DEBUG OpenShift Installer 4.7.0
+DEBUG Built from commit 98e11541c24e95c864328b9b35c64b77836212ed
+INFO Waiting up to 20m0s for the Kubernetes API at https://api.ocp4.bm.nfv.io:6443...
+INFO API v1.20.0+bd9e442 up
 INFO Waiting up to 30m0s for bootstrapping to complete...
 DEBUG Bootstrap status: complete
 INFO Destroying the bootstrap resources...
 <SNIP>
-INFO Waiting up to 1h0m0s for the cluster at https://api.ocp4.bm.nfv.local:6443 to initialize...
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 30% complete
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 42% complete
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 61% complete
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 67% complete
-DEBUG Still waiting for the cluster to initialize: Multiple errors are preventing progress:
-* Could not update build "cluster" (19 of 617)
+INFO Waiting up to 1h0m0s for the cluster at https://api.ocp4.bm.nfv.io:6443 to initialize...
 <SNIP>
-* Could not update oauthclient "console" (379 of 617)
-<SNIP>
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 95% complete
-<SNIP>
-DEBUG Still waiting for the cluster to initialize: Working towards 4.6.16: 100% complete
+DEBUG Still waiting for the cluster to initialize: Working towards 4.7.0: downloading update
+DEBUG Still waiting for the cluster to initialize: Working towards 4.7.0: 662 of 668 done (99% complete)
 DEBUG Cluster is initialized
 INFO Waiting up to 10m0s for the openshift-console route to be created...
 <SNIP>
 INFO Install complete!
-INFO To access the cluster as the system:admin user when using 'oc', run 'export KUBECONFIG=/home/kni/ocp-telco-lab/manifests/auth/kubeconfig'
-INFO Access the OpenShift web-console here: https://console-openshift-console.apps.ocp4.bm.nfv.local
-INFO Login to the console with user: "kubeadmin", and password: "qDovf-CxYp8-VzVv9-uRkpC"
+INFO To access the cluster as the system:admin user when using 'oc', run 'export KUBECONFIG=/home/kni/manifests/auth/kubeconfig'
+INFO Access the OpenShift web-console here: https://console-openshift-console.apps.ocp4.bm.nfv.io
+INFO Login to the console with user: "kubeadmin", and password: "VnQXV-dCVm2-bU9ZJ-pv3Pr"
 DEBUG Time elapsed per stage:
-DEBUG     Infrastructure: 18m54s
-DEBUG Bootstrap Complete: 11m11s
+DEBUG     Infrastructure: 28m22s
+DEBUG Bootstrap Complete: 14m19s
 DEBUG  Bootstrap Destroy: 14s
-DEBUG  Cluster Operators: 30m28s
-INFO Time elapsed: 1h0m56s
+DEBUG  Cluster Operators: 25m54s
+INFO Time elapsed: 1h8m58s
 ```
 
 Once the deployment is over, we can proceed with the first step: the authentication. To make things simple, we will rely upon `HTPasswd`. Single `admin` user with password `admin`, later this will give the flexibility to add additional users with fewer privileges.
