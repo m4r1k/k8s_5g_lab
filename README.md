@@ -282,7 +282,7 @@ addn-hosts=/etc/hosts.dnsmasq
 resolv-file=/etc/resolv.dnsmasq
 expand-hosts
 cache-size=500
-address=/.ocp4.bm.nfv.io/10.0.11.19
+address=/.apps.ocp4.bm.nfv.io/10.0.11.19
 EOF
 
 systemctl is-active dnsmasq && systemctl restart dnsmasq
