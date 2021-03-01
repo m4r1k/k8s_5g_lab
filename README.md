@@ -588,14 +588,26 @@ _URL="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${_VERSION}"
 
 _RELEASE_IMAGE=$(curl -s ${_URL}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
 
-curl -s ${_URL}/openshift-client-linux.tar.gz | tar zxvf - oc
+curl -s ${_URL}/openshift-client-linux.tar.gz | tar zxvf - oc kubectl
 sudo mv -f oc /usr/local/bin
+sudo mv -f kubectl /usr/local/bin
 oc adm release extract \
   --registry-config "${_PULLSECRETFILE}" \
   --command=${_CMD} \
   --to "${_DIR}" ${_RELEASE_IMAGE}
 
 sudo mv -f openshift-baremetal-install /usr/local/bin
+```
+
+Let's also install the `bash` Completion for all CLIs.
+```bash
+mkdir -p ~/.kube/
+oc completion bash > ~/.kube/oc_completion.bash.inc
+kubectl completion bash > ~/.kube/kubectl_completion.bash.inc
+openshift-baremetal-install completion bash > ~/.kube/oc_install_completion.bash.inc
+echo "source ~/.kube/oc_completion.bash.inc" >> ~/.bash_profile
+echo "source ~/.kube/kubectl_completion.bash.inc" >> ~/.bash_profile
+echo "source ~/.kube/oc_install_completion.bash.inc" >> ~/.bash_profile
 ```
 
 Optionally you could [configure a local image cache](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#ipi-install-creating-an-rhcos-images-cache_ipi-install-installation-workflow) and in case of slow Internet connection, you should. I'm personally not going to explain it now in this first release. In the next follow-up, local cache and local OCI mirror will be both included (in the lab diagram, a local registry is already present).
