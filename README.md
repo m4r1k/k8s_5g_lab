@@ -583,7 +583,7 @@ As a first step, we need to install a different kind of `openshift-install` clie
 _CMD=openshift-baremetal-install
 _PULLSECRETFILE=~/pull-secret.json
 _DIR=/home/kni/
-_VERSION=latest-4.7
+_VERSION=stable-4.7
 _URL="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${_VERSION}"
 
 _RELEASE_IMAGE=$(curl -s ${_URL}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
