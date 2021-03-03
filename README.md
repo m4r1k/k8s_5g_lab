@@ -99,7 +99,7 @@ Regarding the VMs configuration:
 * The VM Guest OS Profile is configured for RHEL8 (the firmware is set to `EFI` and `Secure Boot` is **disabled**). The OpenShift installer has only recently [gained the SecureBoot capability](https://github.com/openshift/installer/commit/39c6499), which will be *probably* available with OCP 4.8
 * `vNUMA` is disabled, exposing a single socket (aka equal number of `vCPU` and `Cores per socket`)
 * `I/O MMU` and `Hardware virtualization` (aka `Nested Virtualization`) are both enabled
-* VMXNET3 is the network para-virtualized driver
+* VMXNET3 is the network para-virtualized driver for all interfaces but where PXE runs (first vNIC of `Master`/`Workers` and second vNIC of `Provisioner`). VMware has [known poor support for PXE](https://kb.vmware.com/s/article/59709). The result is a slower PXE boot phase which sometimes also fails (BTW, KVM from this point of view just works)
 * VMware NVME is the storage controller for all VMs (for who's asking about PVSCSI vs. NVME, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
   * In the `install-config.yaml` the [Root device hints](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#root-device-hints_ipi-install-configuration-files) is specified referring to `deviceName: "/dev/nvme0n1"`
 ### 5.1 - Virtual Baseboard Management Controller
@@ -143,17 +143,17 @@ About the OpenShift Architecture, as the diagram above shows:
 
 To reassume the VMs configuration
 
-VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*|vNIC2 *(ens192)*|Storage Device|Ethernet Device|
-----------:|:-:|:--:|:-----:|:--------:|:--------:|:--------------:|:--------------:|:------------:|:-------------:|
-Router     |18 |4   |16 GB  |20GiB     |n/a       |VM Network      |OCP Baremetal   |NVME          |VMXNET3        |
-Provisioner|18 |4   |16 GB  |70GiB     |n/a       |OCP Baremetal   |OCP Provisioning|NVME          |VMXNET3        |
-Master-0   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Master-1   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Master-2   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-0   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-1   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-2   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-NFS Server |18 |2   |16 GB  |70GiB     |300GiB    |OCP Baremetal   |n/a             |NVME          |VMXNET3        |
+VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)         *|vNIC2 *(ens192)         *|Storage Device|
+----------:|:-:|:--:|:-----:|:--------:|:--------:|:-----------------------:|:-----------------------:|:------------:|
+Router     |18 |4   |16 GB  |20GiB     |n/a       |VM Network *VMXNET3*     |OCP Baremetal *VMXNET3*  |NVME          |
+Provisioner|18 |4   |16 GB  |70GiB     |n/a       |OCP Baremetal *VMXNET3*  |OCP Provisioning *E1000e*|NVME          |
+Master-0   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning *E1000e*|OCP Baremetal *VMXNET3*  |NVME          |
+Master-1   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning *E1000e*|OCP Baremetal *VMXNET3*  |NVME          |
+Master-2   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning *E1000e*|OCP Baremetal *VMXNET3*  |NVME          |
+Worker-0   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning *E1000e*|OCP Baremetal *VMXNET3*  |NVME          |
+Worker-1   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning *E1000e*|OCP Baremetal *VMXNET3*  |NVME          |
+Worker-2   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning *E1000e*|OCP Baremetal *VMXNET3*  |NVME          |
+NFS Server |18 |2   |16 GB  |70GiB     |300GiB    |OCP Baremetal *VMXNET3*  |n/a                      |NVME          |
 
 Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the lab in much greater detail.
 
