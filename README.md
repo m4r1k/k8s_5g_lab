@@ -63,7 +63,7 @@ More physical and connectivity details available in Google Spreadsheet [Low-Leve
 Software-wise, things are also very linear:
 
 * As the generic OS to provide all sort of functions (Routing, NAT, DHCP, DNS, NTP etc): CentOS Stream 8
-* CentOS Stream 8 is also used for NFS (the [Kubernetes SIG NFS Client](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) is deployed to have the NFS Storage Class) and as soon as OCP moves to the [RHEL 8.3 kernel](https://bugzilla.redhat.com/show_bug.cgi?id=1761352) (spoiler, it will happen with 4.7), [`NFS nconnect`](https://www.spinics.net/lists/linux-nfs/msg63368.html) will be available
+* CentOS Stream 8 is also used for NFS (the [Kubernetes SIG NFS Client](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) is deployed to have the NFS Storage Class) and OCP moving to the [RHEL 8.3 kernel](https://bugzilla.redhat.com/show_bug.cgi?id=1761352) with OCP 4.7, [`NFS session trunking`](https://www.spinics.net/lists/linux-nfs/msg63368.html) [becomes available](https://access.redhat.com/solutions/4090971)
 * OpenShift Container Platform version 4.7 (but the aim here is to have something entirely usable for future major releases)
 
 ## 5 - vSphere Architecture
