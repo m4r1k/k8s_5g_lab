@@ -139,7 +139,7 @@ About the OpenShift Architecture, as the diagram above shows:
 * Being a bare-metal deployment, a LoadBalancer solution is required and for this, [MetalLB](https://metallb.universe.tf/#why) is the go-to choice
 * A Linux router is available to provide the typical network services such as DHCP, DNS, and NTP as well Internet access
 * A Linux NFS server is installed and, later on, the [Kubernetes SIG NFS Client](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) is deployed through `Helm`
-* Lastly, OVN-Kubernetes is the default CNI Network provider 
+* Lastly, `OVNKubernetes` is the choosen CNI Network provider. OVN has some [serious advantages](https://www.openvswitch.org/support/ovscon2019/day1/1133-OVNForK8sNetworkFunctions.pdf) in [regards to networking](https://youtu.be/pD9dkPDr_jU) and using `OpenShiftSDN` won't really make sense for Telco use-cases.
 
 To reassume the VMs configuration
 
@@ -625,13 +625,13 @@ baseDomain: bm.nfv.io
 metadata:
   name: ocp4
 networking:
-  machineCIDR: 10.0.11.0/27
-  networkType: OVNKubernetes
   clusterNetwork:
   - cidr: 10.128.0.0/14
     hostPrefix: 23
+  machineCIDR: 10.0.11.0/27
   serviceNetwork:
   - 172.30.0.0/16
+  networkType: OVNKubernetes
 compute:
 - name: worker
   replicas: 3
