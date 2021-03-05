@@ -32,18 +32,15 @@ Everything that is built on top of the virtualization stack (in my case VMware v
 In the near future the following topics will also be covered
 
   - SR-IOV Operator (w/o the Webhook)
-  - K8s' CPU Manager
-  - PAO (w/ and w/o RT)
+  - PAO (w/ RT)
   - FD.IO VPP App
   - LACP Bond for physical nodes
   - Use an external CA for the entire platform
   - Local *cache* (OCI Registry + RHCOS Images)
-  - Disable the `ixgbevf` and `i40evf` modules
   - MetalLB BGP
   - Contour
   - CNV
   - Ditch NFS for Rook
-
 ## 4 - Lab High-Level
 ![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
 
@@ -1138,3 +1135,414 @@ hello-kubernetes-5cb945f5f5-8g74v   1/1     Running   0          4m24s   10.130.
 hello-kubernetes-5cb945f5f5-94vqx   1/1     Running   0          4m27s   10.130.2.8   openshift-worker-cnf-1   <none>           <none>
 hello-kubernetes-5cb945f5f5-t52hc   1/1     Running   0          4m31s   10.130.2.7   openshift-worker-cnf-1   <none>           <none>
 ```
+### 7.10 - PAO
+Reaching this point wasn't that easy :-) Assuming everything went well, now our OCP cluster is deployed with at least one physical worker node and we can start taking care of the PAO which is fundamental for any deterministic workloads
+
+To deploy PAO effectively we need to do three things:
+ - Install the `performance-addon-operator` from OperatorHub
+ - Deploy a `MachineConfigPool` with the `worker-cnf` nodeSelector
+ - Deploy a `PerformanceProfile` still using the `worker-cnf` nodeSelector
+
+For more details check out the [official OpenShift documentation](https://docs.openshift.com/container-platform/4.7/scalability_and_performance/cnf-performance-addon-operator-for-low-latency-nodes.html). For more details, there is also another **extremely** good [deep-dive on Medium](https://luis-javier-arizmendi-alonso.medium.com/enhanced-platform-awareness-epa-in-openshift-bonus-track-performance-addon-operator-763c6b3aa65b).
+
+Let's create the following YAML containing the basic steps to install PAO from OperatorHub
+ - Create the `openshift-performance-addon-operator` namespace
+ - Define the PAO Operator
+ - Subscribe to the 4.7 PAO channel with consequential installation of the CRDs
+
+To apply, *as usual*, `oc create -f <path/to/pao/install/yaml>`
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-performance-addon-operator
+  labels:
+    openshift.io/run-level: "1"
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-performance-addon-operator
+  namespace: openshift-performance-addon-operator
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-performance-addon-operator-subscription
+  namespace: openshift-performance-addon-operator
+spec:
+  channel: "4.7"
+  name: performance-addon-operator
+  source: redhat-operators 
+  sourceNamespace: openshift-marketplace
+```
+
+Next, let's create the `MachineConfigPool` ensuring to match the worker-cnf `nodeSelector`.
+In a production situation, dealing with different hardware type, you can replace `worker-cnf` with something more specific like embedding the hardware type/version/revision and/or the scope (which usually comes from the CNF requirements)
+
+To apply, *as usual*, `oc create -f <path/to/worker-cnf/mcp/yaml>`
+
+```yaml
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: worker-cnf
+  labels:
+    machineconfiguration.openshift.io/role: worker-cnf
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {
+          key: machineconfiguration.openshift.io/role,
+          operator: In,
+          values: [worker-cnf, worker]
+        }
+  paused: false
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/worker-cnf: ""
+```
+
+Now, the last step is to deploy PAO on our `worker-cnf` node. The following template is very specific for my hardware. You shouldn't just copy it but instead create a [system partitioning design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit#gid=1002856965).
+
+In my case, as good practice, the first full physical core per NUMA node is available to Kernel, hardware interrupts, and any userland/housekeeper components while all the others are fully isolated and reserved for my deterministic and high-performance workloads.
+
+Memory wise, same story, a small portion of the memory is available to kernel + userland/housekeeper component while the majority available for my workloads in form of 1GB hugepages. Out of 64GB of memory (32GB per NUMA), 28 are pre-allocated in HugePages.
+
+**Fun fact** HugePages **must be** allocated at boot time prior to the Linux kernel is initiated otherwise the memory gets fragmented and:
+ - It's not possible to allocate the maximum value of HugePages
+ - As a result of the fragmentation, the memory is not anymore continuous and the deterministic aspects are affected
+
+To apply, *as usual*, `oc create -f <path/to/pao/worker-cnf/profile/yaml>`
+
+```yaml
+apiVersion: performance.openshift.io/v2
+kind: PerformanceProfile
+metadata:
+  name: pao-worker-cnf
+spec:
+  realTimeKernel:
+    enabled: false
+  globallyDisableIrqLoadBalancing: true
+  numa:  
+    topologyPolicy: "single-numa-node"
+  cpu:
+    reserved: 0,1,24,25
+    isolated: 2-23,26-47
+  additionalKernelArgs:
+    - nmi_watchdog=0
+    - audit=0
+    - mce=off
+    - processor.max_cstate=1
+    - idle=poll
+    - intel_idle.max_cstate=0
+    - module_blacklist=ixgbevf,iavf
+    - default_hugepagesz=1G
+    - hugepagesz=1G
+    - hugepages=56
+  machineConfigPoolSelector:
+    machineconfiguration.openshift.io/role: worker-cnf
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+```
+
+To check the installation status
+```bash
+oc describe PerformanceProfile pao-worker-cnf
+oc get MachineConfigPool worker-cnf -w
+oc get Nodes oc get Nodes openshift-worker-cnf-1 -w
+```
+
+Once is done, connect to the `worker-cnf` node and check
+ - The `GRUB` cmdline
+ - The `Tuned` profile
+ - The `Kubelet` CPU reserved core and CPU Manager configuration
+```console
+# cat /proc/cmdline
+BOOT_IMAGE=(hd0,gpt3)/ostree/rhcos-8db996458745a61fa6759e8612cc44d429af0417584807411e38b991b9bcedb9/vmlinuz-4.18.0-240.10.1.el8_3.x86_64 random.trust_cpu=on console=tty0 console=ttyS0,115200n8 ostree=/ostree/boot.1/rhcos/8db996458745a61fa6759e8612cc44d429af0417584807411e38b991b9bcedb9/0 ignition.platform.id=openstack root=UUID=a72ff11d-83fc-4ebe-a8fe-b7de1817dbf9 rw rootflags=prjquota skew_tick=1 nohz=on rcu_nocbs=2-23,26-47 tuned.non_isolcpus=03000003 intel_pstate=disable nosoftlockup tsc=nowatchdog intel_iommu=on iommu=pt isolcpus=managed_irq,2-23,26-47 systemd.cpu_affinity=0,1,24,25 + nmi_watchdog=0 audit=0 mce=off processor.max_cstate=1 idle=poll intel_idle.max_cstate=0 module_blacklist=ixgbevf,iavf default_hugepagesz=1G hugepagesz=1G hugepages=56
+
+# crictl exec -it $(crictl ps --quiet --name tuned) tuned-adm active
+Current active profile: openshift-node-performance-pao-worker-cnf
+
+# cat /etc/kubernetes/kubelet.conf | grep -E "reservedSystemCPUs|cpuManager"
+  "reservedSystemCPUs": "0,1,24,25",
+  "cpuManagerPolicy": "static",
+  "cpuManagerReconcilePeriod": "5s",
+```
+
+If you also want to verify the fixed CPU clock speed
+```bash
+watch -n.1 -d "cat /proc/cpuinfo | grep -E '^[c]pu MHz'"
+```
+
+A correctly applied profile looks like this:
+```console
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.284
+cpu MHz		: 2900.284
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.286
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.284
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.284
+cpu MHz		: 2900.284
+cpu MHz		: 2900.285
+cpu MHz		: 2900.284
+cpu MHz		: 2900.284
+cpu MHz		: 2900.286
+cpu MHz		: 2900.284
+cpu MHz		: 2900.285
+cpu MHz		: 2900.285
+cpu MHz		: 2900.283
+cpu MHz		: 2900.286
+cpu MHz		: 2900.283
+cpu MHz		: 2900.286
+cpu MHz		: 2900.286
+cpu MHz		: 2900.286
+cpu MHz		: 2900.286
+cpu MHz		: 2900.285
+cpu MHz		: 2900.284
+cpu MHz		: 2900.285
+cpu MHz		: 2900.286
+cpu MHz		: 2900.284
+cpu MHz		: 2900.284
+cpu MHz		: 2900.284
+cpu MHz		: 2900.285
+cpu MHz		: 2900.286
+cpu MHz		: 2900.285
+```
+
+A broken one has *a bit* more variety
+```console
+cpu MHz		: 1308.149
+cpu MHz		: 3100.653
+cpu MHz		: 2115.782
+cpu MHz		: 2968.766
+cpu MHz		: 1892.121
+cpu MHz		: 1732.151
+cpu MHz		: 1698.550
+cpu MHz		: 2900.237
+cpu MHz		: 1678.674
+cpu MHz		: 2903.886
+cpu MHz		: 1913.110
+cpu MHz		: 2901.674
+cpu MHz		: 2901.752
+cpu MHz		: 2904.997
+cpu MHz		: 2191.431
+cpu MHz		: 2900.850
+cpu MHz		: 1791.175
+cpu MHz		: 1915.617
+cpu MHz		: 2914.917
+cpu MHz		: 2915.453
+cpu MHz		: 1638.926
+cpu MHz		: 2929.577
+cpu MHz		: 2953.707
+cpu MHz		: 2959.193
+cpu MHz		: 2018.582
+cpu MHz		: 2909.077
+cpu MHz		: 2808.746
+cpu MHz		: 2922.110
+cpu MHz		: 2524.442
+cpu MHz		: 2738.436
+cpu MHz		: 1812.347
+cpu MHz		: 2906.919
+cpu MHz		: 1380.267
+cpu MHz		: 2913.820
+cpu MHz		: 1314.901
+cpu MHz		: 2905.483
+cpu MHz		: 2906.041
+cpu MHz		: 2905.755
+cpu MHz		: 1338.634
+cpu MHz		: 2900.354
+cpu MHz		: 2645.661
+cpu MHz		: 1968.130
+cpu MHz		: 2822.730
+cpu MHz		: 2918.735
+cpu MHz		: 1596.694
+cpu MHz		: 2932.137
+cpu MHz		: 2953.630
+cpu MHz		: 2957.103
+```
+
+You should also check the `worker-cnf` node from Kubernetes
+```console
+# oc get KubeletConfig performance-pao-worker-cnf -o yaml|grep -E "reservedSystemCPUs|cpuManager"
+    cpuManagerPolicy: static
+    cpuManagerReconcilePeriod: 5s
+    reservedSystemCPUs: 0,1,24,25
+
+# oc describe Nodes openshift-worker-cnf-1
+Name:               openshift-worker-cnf-1
+Roles:              worker,worker-cnf
+Labels:             beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=openshift-worker-cnf-1
+                    kubernetes.io/os=linux
+                    node-role.kubernetes.io/worker=
+                    node-role.kubernetes.io/worker-cnf=
+                    node.openshift.io/os_id=rhcos
+Annotations:        k8s.ovn.org/l3-gateway-config:
+                      {"default":{"mode":"shared","interface-id":"br-ex_openshift-worker-cnf-1","mac-address":"ec:f4:bb:dd:96:29","ip-addresses":["10.0.11.11/27...
+                    k8s.ovn.org/node-chassis-id: 820d2830-c9f3-4f0d-935c-9b4dc4e62a72
+                    k8s.ovn.org/node-local-nat-ip: {"default":["169.254.11.201"]}
+                    k8s.ovn.org/node-mgmt-port-mac-address: a2:98:40:ee:66:40
+                    k8s.ovn.org/node-primary-ifaddr: {"ipv4":"10.0.11.11/27"}
+                    k8s.ovn.org/node-subnets: {"default":"10.128.4.0/23"}
+                    machine.openshift.io/machine: openshift-machine-api/ocp4-d2xs7-worker-cnf-ql878
+                    machineconfiguration.openshift.io/currentConfig: rendered-worker-cnf-592ebb59803b8d407a8c243f37f1b1d6
+                    machineconfiguration.openshift.io/desiredConfig: rendered-worker-cnf-592ebb59803b8d407a8c243f37f1b1d6
+                    machineconfiguration.openshift.io/reason:
+                    machineconfiguration.openshift.io/ssh: accessed
+                    machineconfiguration.openshift.io/state: Done
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Fri, 05 Mar 2021 19:21:39 +0000
+Taints:             node-function=cnf:NoSchedule
+Unschedulable:      false
+Lease:
+  HolderIdentity:  openshift-worker-cnf-1
+  AcquireTime:     <unset>
+  RenewTime:       Fri, 05 Mar 2021 19:42:33 +0000
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       -------
+  MemoryPressure   False   Fri, 05 Mar 2021 19:39:53 +0000   Fri, 05 Mar 2021 19:29:52 +0000   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure     False   Fri, 05 Mar 2021 19:39:53 +0000   Fri, 05 Mar 2021 19:29:52 +0000   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure      False   Fri, 05 Mar 2021 19:39:53 +0000   Fri, 05 Mar 2021 19:29:52 +0000   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready            True    Fri, 05 Mar 2021 19:39:53 +0000   Fri, 05 Mar 2021 19:29:52 +0000   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.0.11.11
+  Hostname:    openshift-worker-cnf-1
+Capacity:
+  cpu:                48
+  ephemeral-storage:  113886Mi
+  hugepages-1Gi:      56Gi
+  hugepages-2Mi:      0
+  memory:             65843552Ki
+  pods:               250
+Allocatable:
+  cpu:                44
+  ephemeral-storage:  106402571701
+  hugepages-1Gi:      56Gi
+  hugepages-2Mi:      0
+  memory:             5996896Ki
+  pods:               250
+System Info:
+  Machine ID:                             e9e370f19d5c4b97a8ad553801e71ae2
+  System UUID:                            4c4c4544-0032-3610-8056-b1c04f4d3632
+  Boot ID:                                44a99d25-ce0a-4846-96c3-4662e7ea56ee
+  Kernel Version:                         4.18.0-240.10.1.el8_3.x86_64
+  OS Image:                               Red Hat Enterprise Linux CoreOS 47.83.202102090044-0 (Ootpa)
+  Operating System:                       linux
+  Architecture:                           amd64
+  Container Runtime Version:              cri-o://1.20.0-0.rhaos4.7.git8921e00.el8.51
+  Kubelet Version:                        v1.20.0+ba45583
+  Kube-Proxy Version:                     v1.20.0+ba45583
+ProviderID:                               baremetalhost:///openshift-machine-api/openshift-worker-cnf-1/f8bc8086-7488-4d65-8152-06185737cbab
+Non-terminated Pods:                      (13 in total)
+  Namespace                               Name                                     CPU Requests  CPU Limits  Memory Requests  Memory Limits  AGE
+  ---------                               ----                                     ------------  ----------  ---------------  -------------  ---
+  openshift-cluster-node-tuning-operator  tuned-gdh25                              10m (0%)      0 (0%)      50Mi (0%)        0 (0%)         21m
+  openshift-dns                           dns-default-dt92d                        65m (0%)      0 (0%)      131Mi (2%)       0 (0%)         21m
+  openshift-image-registry                node-ca-vdcdb                            10m (0%)      0 (0%)      10Mi (0%)        0 (0%)         21m
+  openshift-kni-infra                     coredns-openshift-worker-cnf-1           200m (0%)     0 (0%)      400Mi (6%)       0 (0%)         19m
+  openshift-kni-infra                     keepalived-openshift-worker-cnf-1        200m (0%)     0 (0%)      400Mi (6%)       0 (0%)         20m
+  openshift-kni-infra                     mdns-publisher-openshift-worker-cnf-1    100m (0%)     0 (0%)      200Mi (3%)       0 (0%)         20m
+  openshift-machine-config-operator       machine-config-daemon-q64fc              40m (0%)      0 (0%)      100Mi (1%)       0 (0%)         21m
+  openshift-monitoring                    node-exporter-bqv5b                      9m (0%)       0 (0%)      210Mi (3%)       0 (0%)         21m
+  openshift-multus                        multus-9dlg4                             10m (0%)      0 (0%)      150Mi (2%)       0 (0%)         21m
+  openshift-multus                        network-metrics-daemon-5r4b8             20m (0%)      0 (0%)      120Mi (2%)       0 (0%)         21m
+  openshift-network-diagnostics           network-check-target-6bjw4               10m (0%)      0 (0%)      15Mi (0%)        0 (0%)         21m
+  openshift-ovn-kubernetes                ovnkube-node-gxpd8                       30m (0%)      0 (0%)      620Mi (10%)      0 (0%)         21m
+  openshift-ovn-kubernetes                ovs-node-hcmcb                           15m (0%)      0 (0%)      300Mi (5%)       0 (0%)         21m
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests      Limits
+  --------           --------      ------
+  cpu                719m (1%)     0 (0%)
+  memory             2706Mi (46%)  0 (0%)
+  ephemeral-storage  0 (0%)        0 (0%)
+  hugepages-1Gi      0 (0%)        0 (0%)
+  hugepages-2Mi      0 (0%)        0 (0%)
+Events:
+  Type    Reason                   Age                  From     Message
+  ----    ------                   ----                 ----     -------
+  Normal  NodeNotSchedulable       174m                 kubelet  Node openshift-worker-cnf-1 status is now: NodeNotSchedulable
+  Normal  Starting                 169m                 kubelet  Starting kubelet.
+  Normal  NodeHasSufficientPID     169m (x7 over 169m)  kubelet  Node openshift-worker-cnf-1 status is now: NodeHasSufficientPID
+  Normal  NodeAllocatableEnforced  169m                 kubelet  Updated Node Allocatable limit across pods
+  Normal  NodeHasSufficientMemory  169m (x8 over 169m)  kubelet  Node openshift-worker-cnf-1 status is now: NodeHasSufficientMemory
+  Normal  NodeHasNoDiskPressure    169m (x8 over 169m)  kubelet  Node openshift-worker-cnf-1 status is now: NodeHasNoDiskPressure
+  Normal  NodeNotSchedulable       61m                  kubelet  Node openshift-worker-cnf-1 status is now: NodeNotSchedulable
+  Normal  NodeNotSchedulable       16m                  kubelet  Node openshift-worker-cnf-1 status is now: NodeNotSchedulable
+  Normal  Starting                 13m                  kubelet  Starting kubelet.
+  Normal  NodeHasSufficientPID     13m (x7 over 13m)    kubelet  Node openshift-worker-cnf-1 status is now: NodeHasSufficientPID
+  Normal  NodeAllocatableEnforced  13m                  kubelet  Updated Node Allocatable limit across pods
+  Normal  NodeHasSufficientMemory  13m (x8 over 13m)    kubelet  Node openshift-worker-cnf-1 status is now: NodeHasSufficientMemory
+  Normal  NodeHasNoDiskPressure    13m (x8 over 13m)    kubelet  Node openshift-worker-cnf-1 status is now: NodeHasNoDiskPressure
+```
+
+Follows a couple of logs with an early PAO profile about the HugePages fragmentation I talked above define through the `spec.hugepages`
+```yaml
+  hugepages:
+    defaultHugepagesSize: 1G
+    pages:
+      - count: 28
+        node: 0
+        size: 1G
+      - count: 28
+        node: 1
+        size: 1G
+```
+
+This is even the Red Hat way described in the documentation, but as usual, blindly following the documentation like a monkey ain't any good :-P
+```console
+# journalctl -u hugepages-allocation-1048576kB-NUMA0.service -u hugepages-allocation-1048576kB-NUMA1.service
+Mar 05 16:57:46 localhost systemd[1]: Starting Hugepages-1048576kB allocation on the node 0...
+Mar 05 16:57:46 localhost systemd[1]: Starting Hugepages-1048576kB allocation on the node 1...
+Mar 05 16:58:47 localhost.localdomain hugepages-allocation.sh[1836]: ERROR: /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages does not have the expected number of hugepages 28
+Mar 05 16:58:47 localhost.localdomain hugepages-allocation.sh[1951]: ERROR: /sys/devices/system/node/node1/hugepages/hugepages-1048576kB/nr_hugepages does not have the expected number of hugepages 28
+Mar 05 16:58:47 localhost.localdomain systemd[1]: hugepages-allocation-1048576kB-NUMA0.service: Main process exited, code=exited, status=1/FAILURE
+Mar 05 16:58:47 localhost.localdomain systemd[1]: hugepages-allocation-1048576kB-NUMA0.service: Failed with result 'exit-code'.
+Mar 05 16:58:47 localhost.localdomain systemd[1]: hugepages-allocation-1048576kB-NUMA1.service: Main process exited, code=exited, status=1/FAILURE
+Mar 05 16:58:47 localhost.localdomain systemd[1]: hugepages-allocation-1048576kB-NUMA1.service: Failed with result 'exit-code'.
+Mar 05 16:58:47 localhost.localdomain systemd[1]: Failed to start Hugepages-1048576kB allocation on the node 0.
+Mar 05 16:58:47 localhost.localdomain systemd[1]: Failed to start Hugepages-1048576kB allocation on the node 1.
+
+# tail /sys/devices/system/node/node*/hugepages/hugepages-1048576kB/*
+==> /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/free_hugepages <==
+20
+==> /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages <==
+20
+==> /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/surplus_hugepages <==
+0
+==> /sys/devices/system/node/node1/hugepages/hugepages-1048576kB/free_hugepages <==
+24
+==> /sys/devices/system/node/node1/hugepages/hugepages-1048576kB/nr_hugepages <==
+24
+==> /sys/devices/system/node/node1/hugepages/hugepages-1048576kB/surplus_hugepages <==
+0
+
+# free -h
+              total        used        free      shared  buff/cache   available
+Mem:           62Gi        45Gi        16Gi       2.0Mi       257Mi        16Gi
+Swap:            0B          0B          0B
+```
+
+Next we will be looking at some synthetic verifications
