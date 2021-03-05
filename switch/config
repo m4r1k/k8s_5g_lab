@@ -10,18 +10,6 @@ stack unit 1
 !
 !
 !
-lag ESXi-10G dynamic id 30
- ports ethernet 1/3/7 to 1/3/8
- primary-port 1/3/7
- lacp-timeout short
- deploy
-!
-lag ESXi-1G dynamic id 31
- ports ethernet 1/1/11 to 1/1/12
- primary-port 1/1/11
- lacp-timeout short
- deploy
-!
 lag R630 dynamic id 10
  ports ethernet 1/1/16 ethernet 1/1/18 ethernet 1/1/20
  primary-port 1/1/16
@@ -41,7 +29,7 @@ vlan 1 name DEFAULT-VLAN by port
  loop-detection
 !
 vlan 100 name provisioning by port
- tagged ethe 1/1/11 to 1/1/24
+ tagged ethe 1/1/11 to 1/1/24 ethe 1/3/7 to 1/3/8
  router-interface ve 100
 !
 vlan 110 name baremetal by port
@@ -290,6 +278,9 @@ ntp
 interface ethernet 1/1/11
  dual-mode  100
 !
+interface ethernet 1/1/12
+ dual-mode  100
+!
 interface ethernet 1/1/13
  dual-mode  100
 !
@@ -321,6 +312,9 @@ interface ethernet 1/3/6
  speed-duplex 10G-full
 !
 interface ethernet 1/3/7
+ speed-duplex 10G-full
+!
+interface ethernet 1/3/8
  speed-duplex 10G-full
 !
 interface ve 100
