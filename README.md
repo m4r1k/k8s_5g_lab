@@ -535,7 +535,7 @@ nohup bash -c "
 If the connection dropped, inspect the `nohup.out` file, it may reveal what went wrong :-D. Otherwise, that file can be deleted and we can install libvirt and start the service
 
 ```bash
-dnf install -y libvirt qemu-kvm mkisofs python3-devel jq ipmitool OpenIPMI
+dnf install -y libvirt qemu-kvm mkisofs python3-devel jq ipmitool OpenIPMI cockpit-machines
 systemctl enable --now libvirtd
 ```
 Once done, let's add the a privilaged `kni` user, which ultimately kickstart the deployment
