@@ -676,7 +676,7 @@ platform:
         rootDeviceHints:
           deviceName: "/dev/nvme0n1"
       - name: openshift-worker-0
-        role: master
+        role: worker
         bmc:
           address: ipmi://192.168.178.28
           username: root
@@ -685,7 +685,7 @@ platform:
         rootDeviceHints:
           deviceName: "/dev/nvme0n1"
       - name: openshift-worker-1
-        role: master
+        role: worker
         bmc:
           address: ipmi://192.168.178.29
           username: root
@@ -694,7 +694,7 @@ platform:
         rootDeviceHints:
           deviceName: "/dev/nvme0n1"
       - name: openshift-worker-2
-        role: master
+        role: worker
         bmc:
           address: ipmi://192.168.178.30
           username: root
