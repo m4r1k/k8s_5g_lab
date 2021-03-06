@@ -1251,7 +1251,7 @@ To check the installation status
 ```bash
 oc describe PerformanceProfile pao-worker-cnf
 oc get MachineConfigPool worker-cnf -w
-oc get Nodes oc get Nodes openshift-worker-cnf-1 -w
+oc get Nodes openshift-worker-cnf-1 -w
 ```
 
 Once is done, connect to the `worker-cnf` node and check
