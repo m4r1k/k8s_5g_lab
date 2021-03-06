@@ -12,8 +12,43 @@ Once done, first copy the RootCA `crt` and `key` under `/root` and then run the 
 
 ## Mirror OCP4 Contents
 Well, few but important steps:
- - create a new namespace in Harbor, or use the default `library`
- - create a user and also craft its `pull-secret`
+ - Create a new namespace in Harbor, or use the default `library` (in my example is called ocp4)
+ - Create a new user in Harbor, or use `admin` (using admin)
+ - In case a new user is created, ensure it has access to the new namespace
+
+You need then to create the `pull-secret`, mine looks like the following
+```json
+{
+  "auths": {
+    "cloud.openshift.com": {
+      "auth": "<SNAP>",
+      "email": "fiezzi@redhat.com"
+    },
+    "quay.io": {
+      "auth": "<SNAP>",
+      "email": "fiezzi@redhat.com"
+    },
+    "registry.connect.redhat.com": {
+      "auth": "<SNAP>",
+      "email": "fiezzi@redhat.com"
+    },
+    "registry.redhat.io": {
+      "auth": "<SNAP>",
+      "email": "fiezzi@redhat.com"
+    },
+    "harbor.ocp4.bm.nfv.io": {
+      "auth": "<SNAP>",
+      "email": "ocp4@ocp4.bm.nfv.io"
+    }
+  }
+}
+```
+
+To generate the one for `harbor.ocp4.bm.nfv.io` you just need the Base64 of `username:password`
+```console
+# echo -n 'admin:Harbor12345' | base64 -w0
+YWRtaW46SGFyYm9yMTIzNDU=
+```
 
 Once done, from the provisioning (or anywhere with the latest `oc` CLI) run the following (here the mirroring will be OCP 4.7.0 but you can choose a different version)
 
