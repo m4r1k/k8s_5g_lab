@@ -174,7 +174,7 @@ Also available in Google Spreadsheet a table view [Low-Level Design](https://doc
 ## 7 - Deployment
 This section aims to provide the configuration needed to deploy all the components.
 
-### 7.1 - Router, NFS Server and Provisioner VMs
+### 7.1 - RootCA, Router, NFS Server and Provisioner VMs
 The Router, NFS Server and Provisioner VMs are created manually in vSphere (refer to the VMware section for the details). Follows a list of configurations common to all of them:
 
  * CentOS Stream 8
@@ -220,6 +220,29 @@ Finally run the RHEL Cockpit web interface
 systemctl enable --now cockpit.socket
 firewall-cmd --permanent --zone=external --add-service=cockpit
 firewall-cmd --reload
+```
+#### 7.1.2 - RootCA
+It's quite handy having around a certification autority to later sign OCP traffic, Registry etc.
+Let's create a self-signed RootCA. I'm gonna do it on the router, the `CRT` needs to be copied and installed everywhere. 
+```bash
+_DIR=/root/certs
+mkdir -p /root/certs
+openssl req \
+ -new \
+ -newkey rsa:2048 \
+ -days 3650 \
+ -nodes \
+ -x509 \
+ -subj "/CN=nfv.io" \
+ -keyout "${_DIR}/ca.key" \
+ -out "${_DIR}/ca.crt"
+```
+
+To verify the content `openssl x509 -in "${_DIR}/ca.crt" -noout -text`
+To ensure any system will trust certificates issued by the RootCA, simply copy the `ca.crt` and run
+```bash
+cp /root/ca.crt /etc/pki/ca-trust/source/anchors/
+update-ca-trust extract
 ```
 ### 7.2 - Router
 First off, let's install DNSMasq. Being an OpenStack guy, DNSMasq feels home (back in my old public-cloud days, I remember experiencing a DoS caused by the `log-queries` facility when malicious users generate many 1000s of DNS queries per second)
