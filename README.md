@@ -1294,113 +1294,67 @@ Current active profile: openshift-node-performance-pao-worker-cnf
   "cpuManagerReconcilePeriod": "5s",
 ```
 
-If you also want to verify the fixed CPU clock speed
+If you also want to verify the fixed CPU clock speed, let's first create a little `awk` program
 ```bash
-watch -n.1 -d "cat /proc/cpuinfo | grep -E '^[c]pu MHz'"
+cat > /root/checkClock.sh << 'EOF'
+cat /proc/cpuinfo | awk '/processor/{CPU=$3; next} /^[c]pu MHz/{print "CPU"CPU " -> " $4" MHz"}'
+EOF
+```
+And then execute it
+```bash
+watch -n.1 -d bash /root/checkClock.sh
 ```
 
-A correctly applied profile looks like this:
+Here you have a **correctly tuned** output on the **left** and then a **untuned output** on the **right**.
 ```console
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.284
-cpu MHz		: 2900.284
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.286
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.284
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.284
-cpu MHz		: 2900.284
-cpu MHz		: 2900.285
-cpu MHz		: 2900.284
-cpu MHz		: 2900.284
-cpu MHz		: 2900.286
-cpu MHz		: 2900.284
-cpu MHz		: 2900.285
-cpu MHz		: 2900.285
-cpu MHz		: 2900.283
-cpu MHz		: 2900.286
-cpu MHz		: 2900.283
-cpu MHz		: 2900.286
-cpu MHz		: 2900.286
-cpu MHz		: 2900.286
-cpu MHz		: 2900.286
-cpu MHz		: 2900.285
-cpu MHz		: 2900.284
-cpu MHz		: 2900.285
-cpu MHz		: 2900.286
-cpu MHz		: 2900.284
-cpu MHz		: 2900.284
-cpu MHz		: 2900.284
-cpu MHz		: 2900.285
-cpu MHz		: 2900.286
-cpu MHz		: 2900.285
-```
-
-A broken one has *a bit* more variety
-```console
-cpu MHz		: 1308.149
-cpu MHz		: 3100.653
-cpu MHz		: 2115.782
-cpu MHz		: 2968.766
-cpu MHz		: 1892.121
-cpu MHz		: 1732.151
-cpu MHz		: 1698.550
-cpu MHz		: 2900.237
-cpu MHz		: 1678.674
-cpu MHz		: 2903.886
-cpu MHz		: 1913.110
-cpu MHz		: 2901.674
-cpu MHz		: 2901.752
-cpu MHz		: 2904.997
-cpu MHz		: 2191.431
-cpu MHz		: 2900.850
-cpu MHz		: 1791.175
-cpu MHz		: 1915.617
-cpu MHz		: 2914.917
-cpu MHz		: 2915.453
-cpu MHz		: 1638.926
-cpu MHz		: 2929.577
-cpu MHz		: 2953.707
-cpu MHz		: 2959.193
-cpu MHz		: 2018.582
-cpu MHz		: 2909.077
-cpu MHz		: 2808.746
-cpu MHz		: 2922.110
-cpu MHz		: 2524.442
-cpu MHz		: 2738.436
-cpu MHz		: 1812.347
-cpu MHz		: 2906.919
-cpu MHz		: 1380.267
-cpu MHz		: 2913.820
-cpu MHz		: 1314.901
-cpu MHz		: 2905.483
-cpu MHz		: 2906.041
-cpu MHz		: 2905.755
-cpu MHz		: 1338.634
-cpu MHz		: 2900.354
-cpu MHz		: 2645.661
-cpu MHz		: 1968.130
-cpu MHz		: 2822.730
-cpu MHz		: 2918.735
-cpu MHz		: 1596.694
-cpu MHz		: 2932.137
-cpu MHz		: 2953.630
-cpu MHz		: 2957.103
+CPU0 -> 2900.285 MHz    |   CPU0 -> 1308.149 MHz
+CPU1 -> 2900.285 MHz    |   CPU1 -> 3100.653 MHz
+CPU2 -> 2900.285 MHz    |   CPU2 -> 2115.782 MHz
+CPU3 -> 2900.284 MHz    |   CPU3 -> 2968.766 MHz
+CPU4 -> 2900.284 MHz    |   CPU4 -> 1892.121 MHz
+CPU5 -> 2900.285 MHz    |   CPU5 -> 1732.151 MHz
+CPU6 -> 2900.285 MHz    |   CPU6 -> 1698.550 MHz
+CPU7 -> 2900.285 MHz    |   CPU7 -> 2900.237 MHz
+CPU8 -> 2900.285 MHz    |   CPU8 -> 1678.674 MHz
+CPU9 -> 2900.286 MHz    |   CPU9 -> 2903.886 MHz
+CPU10 -> 2900.285 MHz   |   CPU10 -> 1913.110 MHz
+CPU11 -> 2900.285 MHz   |   CPU11 -> 2901.674 MHz
+CPU12 -> 2900.285 MHz   |   CPU12 -> 2901.752 MHz
+CPU13 -> 2900.285 MHz   |   CPU13 -> 2904.997 MHz
+CPU14 -> 2900.285 MHz   |   CPU14 -> 2191.431 MHz
+CPU15 -> 2900.285 MHz   |   CPU15 -> 2900.850 MHz
+CPU16 -> 2900.285 MHz   |   CPU16 -> 1791.175 MHz
+CPU17 -> 2900.284 MHz   |   CPU17 -> 1915.617 MHz
+CPU18 -> 2900.285 MHz   |   CPU18 -> 2914.917 MHz
+CPU19 -> 2900.285 MHz   |   CPU19 -> 2915.453 MHz
+CPU20 -> 2900.285 MHz   |   CPU20 -> 1638.926 MHz
+CPU21 -> 2900.285 MHz   |   CPU21 -> 2929.577 MHz
+CPU22 -> 2900.284 MHz   |   CPU22 -> 2953.707 MHz
+CPU23 -> 2900.284 MHz   |   CPU23 -> 2959.193 MHz
+CPU24 -> 2900.285 MHz   |   CPU24 -> 2018.582 MHz
+CPU25 -> 2900.284 MHz   |   CPU25 -> 2909.077 MHz
+CPU26 -> 2900.284 MHz   |   CPU26 -> 2808.746 MHz
+CPU27 -> 2900.286 MHz   |   CPU27 -> 2922.110 MHz
+CPU28 -> 2900.284 MHz   |   CPU28 -> 2524.442 MHz
+CPU29 -> 2900.285 MHz   |   CPU29 -> 2738.436 MHz
+CPU30 -> 2900.285 MHz   |   CPU30 -> 1812.347 MHz
+CPU31 -> 2900.283 MHz   |   CPU31 -> 2906.919 MHz
+CPU32 -> 2900.286 MHz   |   CPU32 -> 1380.267 MHz
+CPU33 -> 2900.283 MHz   |   CPU33 -> 2913.820 MHz
+CPU34 -> 2900.286 MHz   |   CPU34 -> 1314.901 MHz
+CPU35 -> 2900.286 MHz   |   CPU35 -> 2905.483 MHz
+CPU36 -> 2900.286 MHz   |   CPU36 -> 2906.041 MHz
+CPU37 -> 2900.286 MHz   |   CPU37 -> 2905.755 MHz
+CPU38 -> 2900.285 MHz   |   CPU38 -> 1338.634 MHz
+CPU39 -> 2900.284 MHz   |   CPU39 -> 2900.354 MHz
+CPU40 -> 2900.285 MHz   |   CPU40 -> 2645.661 MHz
+CPU41 -> 2900.286 MHz   |   CPU41 -> 1968.130 MHz
+CPU42 -> 2900.284 MHz   |   CPU42 -> 2822.730 MHz
+CPU43 -> 2900.284 MHz   |   CPU43 -> 2918.735 MHz
+CPU44 -> 2900.284 MHz   |   CPU44 -> 1596.694 MHz
+CPU45 -> 2900.285 MHz   |   CPU45 -> 2932.137 MHz
+CPU46 -> 2900.286 MHz   |   CPU46 -> 2953.630 MHz
+CPU47 -> 2900.285 MHz   |   CPU47 -> 2957.103 MHz
 ```
 
 You should also check the `worker-cnf` node from Kubernetes
