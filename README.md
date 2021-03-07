@@ -1305,7 +1305,7 @@ And then execute it
 watch -n.1 -d bash /root/checkClock.sh
 ```
 
-Here you have a **correctly tuned** output on the **left** and then a **untuned output** on the **right**.
+Here you have a **correctly tuned** system on the **left** and then a **untuned system** on the **right**.
 ```console
 CPU0 -> 2900.285 MHz    |   CPU0 -> 1308.149 MHz
 CPU1 -> 2900.285 MHz    |   CPU1 -> 3100.653 MHz
