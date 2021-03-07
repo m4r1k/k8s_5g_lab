@@ -1357,6 +1357,14 @@ CPU46 -> 2900.286 MHz   |   CPU46 -> 2953.630 MHz
 CPU47 -> 2900.285 MHz   |   CPU47 -> 2957.103 MHz
 ```
 
+For more hardware details, assuming you have an Intel platform, you best weapon is [Intel PCM](https://github.com/opcm/pcm). You can run it using the handy `debug` facility
+```bash
+oc debug node/openshift-worker-cnf-1 --image=docker.io/opcm/pcm
+```
+The Pod has all PCM tools pre-compiled and available. Follows a simple example of `pcm.x`
+
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/pcm.png" width="75%" />
+
 You should also check the `worker-cnf` node from Kubernetes
 ```console
 # oc get KubeletConfig performance-pao-worker-cnf -o yaml|grep -E "reservedSystemCPUs|cpuManager"
