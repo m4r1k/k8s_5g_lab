@@ -62,6 +62,7 @@ dnf config-manager \
     https://download.docker.com/linux/centos/docker-ce.repo
 dnf makecache
 dnf install -y docker-ce docker-ce-cli containerd.io
+systemctl enable --now docker
 
 # Ensure local Docker can trust Harbor
 echo "[Step 0]: Disable local registry verification ..."
@@ -76,7 +77,8 @@ cat > /etc/docker/daemon.json <<EOF
   "storage-driver": "overlay2"
 }
 EOF
-systemctl enable --now docker
+systemctl restart docker
+
 
 # Install Docker Compose
 echo "[Step 0]: Install Docker Compose ..."
