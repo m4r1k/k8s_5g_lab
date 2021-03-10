@@ -101,7 +101,7 @@ distinguished_name = req_distinguished_name
 req_extensions = v3_req
 
 [req_distinguished_name]
-CN = harbor.ocp4.bm.nfv.io
+CN = $(hostname -f)
 
 [v3_req]
 basicConstraints     = CA:FALSE
@@ -111,8 +111,8 @@ extendedKeyUsage     = clientAuth, serverAuth
 subjectAltName       = @alt_names
 
 [alt_names]
-IP.1  = 10.0.11.27
-DNS.1 = harbor.ocp4.bm.nfv.io
+IP.1  = $(hostname -I|cut -d" " -f 1)
+DNS.1 = $(hostname -f)
 EOF
 
 # Create Certificate Key
