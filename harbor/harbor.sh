@@ -15,13 +15,13 @@ if [ -d /root/harbor ]; then
 fi
 
 # Verify if the RootCA KEY is available to sign the Harbor PEM
-if [ -f /root/ca.key ]; then
+if ! [ -f /root/ca.key ]; then
     echo "Error, missing RootCA Key under /root/ca.key."
     exit 1
 fi
 
 # Verify if the RootCA CRT is available to sign the Harbor PEM
-if [ -f /root/ca.crt ]; then
+if ! [ -f /root/ca.crt ]; then
     echo "Error, missing RootCA Key under /root/ca.crt."
     exit 1
 fi
