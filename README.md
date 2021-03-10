@@ -71,10 +71,10 @@ Let's address the elephant in the room: why VMware vSphere? Well, there are a co
 * While OpenShift supports many on-premise platforms (OpenStack, oVirt, pure bare-metal, and vSphere), the power of an indeed Enterprise Virtualization Platform could play an essential role in how the lab evolves, and it could also act as a reference (for example, today real production on bare-metal has a minimum footprint of 7 nodes: 3x Master + 3x Infra + 1x Provisioner)
 * *In general*, VMware is just better at hardware virtualization and there might be some edge cases where it becomes instrumental. Last year my [OpenStack NFVi Lab moved to vSphere](https://github.com/m4r1k/nfvi_lab/commit/d7149a1) because I wanted to expose virtual NVME devices to my Ceph Storage nodes (of course, not everything is better, *tip: if you're interested, compare CPU & NUMA Affinity and the SMP topology capability of ESXi and KVM*)
 
-The vSphere architecture is also very lean:
+The vSphere architecture is also very lean. Its usually as updated as possible, generally running the latest version plus the DellEMC Bundle.
 
-* ESXi 7.0 U1d (`17551050`)
-* vCenter Server deployed through vCSA 7.0 U1d (`7.0.1.00300`)
+* ESXi 7.0 U2 (`17630552`)
+* vCenter Server deployed through vCSA 7.0 U2 (`7.0.2.00000`)
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
 * DRS's CPU over-commit ratio is not configured
@@ -91,7 +91,7 @@ A quick note about the Distributed Port Groups security configuration:
 
 Regarding the VMs configuration:
 
-* All the VM use the latest [vHW 18](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-789C3913-1053-4850-A0F0-E29C3D32B6DA.html)
+* All the VM use the latest [vHW 19](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-789C3913-1053-4850-A0F0-E29C3D32B6DA.html)
 * The VM Guest OS Profile is configured for RHEL8 (the firmware is set to `EFI` and `Secure Boot` is **disabled**). The OpenShift installer has only recently [gained the SecureBoot capability](https://github.com/openshift/installer/commit/39c6499), which will be *probably* available with OCP 4.8
 * `vNUMA` is disabled, exposing a single socket (aka equal number of `vCPU` and `Cores per socket`)
 * `I/O MMU` and `Hardware virtualization` (aka `Nested Virtualization`) are both enabled
@@ -141,15 +141,15 @@ To reassume the VMs configuration
 
 VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*|vNIC2 *(ens192)*|Storage Device|Ethernet Device|
 ----------:|:-:|:--:|:-----:|:--------:|:--------:|:--------------:|:--------------:|:------------:|:-------------:|
-Router     |18 |4   |16 GB  |20GiB     |n/a       |VM Network      |OCP Baremetal   |NVME          |VMXNET3        |
-Provisioner|18 |4   |16 GB  |70GiB     |n/a       |OCP Baremetal   |OCP Provisioning|NVME          |VMXNET3        |
-Master-0   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Master-1   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Master-2   |18 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-0   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-1   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-2   |18 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-NFS Server |18 |2   |16 GB  |70GiB     |300GiB    |OCP Baremetal   |n/a             |NVME          |VMXNET3        |
+Router     |19 |4   |16 GB  |20GiB     |n/a       |VM Network      |OCP Baremetal   |NVME          |VMXNET3        |
+Provisioner|19 |4   |16 GB  |70GiB     |n/a       |OCP Baremetal   |OCP Provisioning|NVME          |VMXNET3        |
+Master-0   |19 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Master-1   |19 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Master-2   |19 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
+NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |OCP Baremetal   |n/a             |NVME          |VMXNET3        |
 
 Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the lab in much greater detail.
 
