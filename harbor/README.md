@@ -66,6 +66,34 @@ oc adm -a ${LOCAL_SECRET_JSON} release mirror \
   --to=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY} \
   --to-release-image=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}-${ARCHITECTURE}
 ```
+## Mirror OperatorHub
+If you want to mirror the four OCP OperatorHub (`redhat-operator-index`, `certified-operator-index`, `redhat-marketplace-index`, and `community-operator-index`) make sure to enlarge the NGiNX Client Header Buffers otherwise you will get an HTTP error 414.
+
+You can do it as follows
+```bash
+cat > /root/harbor/harbor/common/config/nginx/conf.d/uploads.upstream.conf << EOF
+fastcgi_buffers 8 16k;
+fastcgi_buffer_size 32k;
+
+client_max_body_size 24M;
+client_body_buffer_size 128k;
+
+client_header_buffer_size 5120k;
+large_client_header_buffers 16 5120k;
+EOF
+docker restart nginx
+```
+
+To initiate the OperatorHub mirroring, run the following shell script (remember to create the `ocp4_operatorhub` namespace in Harbor)
+```bash
+oc adm catalog mirror \
+  registry.redhat.io/redhat/redhat-operator-index:v4.7 \
+  harbor.ocp4.bm.nfv.io/ocp4_operatorhub \
+  a ~/pull-secret_harbor.json \
+  --filter-by-os=linux/amd64 \
+  --max-per-registry=64
+```
+
 ## Verify OCP Release information
 The following is an example for OCP 4.7.0 for x86
 ```console
