@@ -624,9 +624,9 @@ mkdir -p ~/.kube/
 oc completion bash > ~/.kube/oc_completion.bash.inc
 kubectl completion bash > ~/.kube/kubectl_completion.bash.inc
 openshift-baremetal-install completion bash > ~/.kube/oc_install_completion.bash.inc
-echo "source ~/.kube/oc_completion.bash.inc" >> ~/.bash_profile
-echo "source ~/.kube/kubectl_completion.bash.inc" >> ~/.bash_profile
-echo "source ~/.kube/oc_install_completion.bash.inc" >> ~/.bash_profile
+grep -q "oc_completion.bash.inc" ~/.bash_profile || echo "source ~/.kube/oc_completion.bash.inc" >> ~/.bash_profile
+grep -q "kubectl_completion.bash.inc" ~/.bash_profile || echo "source ~/.kube/kubectl_completion.bash.inc" >> ~/.bash_profile
+grep -q "oc_install_completion.bash.inc" ~/.bash_profile || echo "source ~/.kube/oc_install_completion.bash.inc" >> ~/.bash_profile
 ```
 
 Optionally you could [configure a local image cache](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#ipi-install-creating-an-rhcos-images-cache_ipi-install-installation-workflow) and in case of slow Internet connection, you should. I'm personally not going to explain it now in this first release. In the next follow-up, local cache and local OCI mirror will be both included (in the lab diagram, a local registry is already present).
