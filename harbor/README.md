@@ -12,7 +12,7 @@ Once done, first copy the RootCA `crt` and `key` under `/root` and then run the 
 
 ## Mirror OCP4 Contents
 Well, few but important steps:
- - Create a new namespace in Harbor, or use the default `library` (in my example is called ocp4)
+ - Create a new namespace in Harbor, or use the default `library` (in my example is called `ocp4-releases`)
  - Create a new user in Harbor, or use `admin` (using admin)
  - In case a new user is created, ensure it has access to the new namespace
 
@@ -59,12 +59,12 @@ RELEASE_NAME="ocp-release"
 OCP_RELEASE="4.7.0"
 ARCHITECTURE="x86_64"
 LOCAL_REGISTRY="harbor.ocp4.bm.nfv.io"
-LOCAL_REPOSITORY="ocp4/openshift4"
+LOCAL_REPOSITORY="ocp4-releases/openshift"
 
 oc adm -a ${LOCAL_SECRET_JSON} release mirror \
   --from=quay.io/${PRODUCT_REPO}/${RELEASE_NAME}:${OCP_RELEASE}-${ARCHITECTURE} \
-  --to=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY} \
-  --to-release-image=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}-${ARCHITECTURE}
+  --to=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}-${OCP_RELEASE} \
+  --to-release-image=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}-${OCP_RELEASE}:${OCP_RELEASE}-${ARCHITECTURE}
 ```
 ## Mirror OperatorHub
 If you want to mirror the four OCP OperatorHub (`redhat-operator-index`, `certified-operator-index`, `redhat-marketplace-index`, and `community-operator-index`) make sure to enlarge the NGiNX Client Header Buffers otherwise you will get an HTTP error 414.
