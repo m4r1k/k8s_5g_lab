@@ -8,7 +8,7 @@ During the past decade, many Telcos have looked at OpenStack for their 4G Virtua
 
 The 5G standard allows decoupling the various components into literally thousands of micro-services to embrace a containerized architecture. The following diagram represents the mobile network (2G, 3G, 4G, 5G ) ([available on NetX](https://www.mpirical.com/netx), IMO best independente source to learn the 3GPP mobile standards)
 
-<img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/mobile_network.png" width="75%" />
+<img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/mobile_network.png" />
 
 Even considering only 5G, orchestrating these massive applications without something like Kubernetes would be impossible.
 ## 2 - 5G is Containers
