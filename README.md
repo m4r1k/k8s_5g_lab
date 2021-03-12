@@ -727,6 +727,10 @@ platform:
           deviceName: "/dev/nvme0n1"
 fips: false
 pullSecret: '{"auths":{<SNIP>}}'
+additionalTrustBundle: |
+  -----BEGIN CERTIFICATE-----
+  <SNIP>
+  -----END CERTIFICATE-----
 sshKey: 'ssh-rsa <SNIP>'
 ```
 The initial deployment may fail due to multiple reasons:
