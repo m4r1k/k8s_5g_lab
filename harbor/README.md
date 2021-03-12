@@ -66,6 +66,17 @@ oc adm -a ${LOCAL_SECRET_JSON} release mirror \
   --to=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}-${OCP_RELEASE} \
   --to-release-image=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}-${OCP_RELEASE}:${OCP_RELEASE}-${ARCHITECTURE}
 ```
+
+Once the mirroring process is over, add to the `install-config.yaml` the following section having care to use the correct OCP release
+```yaml
+imageContentSources:
+- mirrors:
+  - harbor.ocp4.bm.nfv.io/ocp4-releases/openshift-4.7.0
+  source: quay.io/openshift-release-dev/ocp-release
+- mirrors:
+  - harbor.ocp4.bm.nfv.io/ocp4-releases/openshift-4.7.0
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+```
 ## Mirror OperatorHub
 If you want to mirror the four OCP OperatorHub (`redhat-operator-index`, `certified-operator-index`, `redhat-marketplace-index`, and `community-operator-index`) make sure to enlarge the NGiNX Client Header Buffers otherwise you will get an HTTP error 414.
 
