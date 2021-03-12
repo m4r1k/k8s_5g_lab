@@ -1610,3 +1610,923 @@ inet_diag              24576  1 sctp_diag
 sctp                  405504  3 sctp_diag
 libcrc32c              16384  5 nf_conntrack,nf_nat,openvswitch,xfs,sctp
 ```
+### 7.12 SR-IOV
+To have SR-IOV capability in the platform, we will follow a similar approach as we did for PAO. OpenShift comes with two instrumental operators:
+ - [SR-IOV Network Operator](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html) to configure and manage SR-IOV devices
+ - [NMState Operator](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-about-the-k8s-nmstate-operator.html) to configure the network interfaces (as the name suggests, is NetworkManager driven).
+  
+Starting with OCP 4.7, NMstate is available through the OperatorHub. If you are on an older/different version, you can always go down [the upstream path](https://github.com/nmstate/kubernetes-nmstate/releases) (don't forget to deploy the SCC too).
+
+In the near future, [NMState will also manage the Link Aggregation](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-updating-node-network-config.html) with OVN-Kubernetes, but for the time being, [this won't be possible](https://github.com/openshift/openshift-docs/commit/671bb09) :-(
+
+For those who are wondering, Multus is [pre-installed and pre-configured out of the box](https://docs.openshift.com/container-platform/4.7/networking/multiple_networks/understanding-multiple-networks.html). Red Hat wrote an amazing ["Demystifying Multus" blog post](https://www.openshift.com/blog/demystifying-multus) explaining all bits and pieces.
+
+The high-level process for NMState and SR-IOV is as following
+ - Create a namespace for the SR-IOV operator and another one for NMState
+ - Install the `sriov-network-operators` and `openshift-nmstate` from OperatorHub
+ - Deploy a `MachineConfigPool` with the `worker-cnf` nodeSelector
+ - Deploy a `PerformanceProfile` still using the `worker-cnf` nodeSelector
+
+So going low-level, let's create the following YAML containing the basic steps to install NMState and the SR-IOV Operator from OperatorHub
+ - Create the `openshift-nmstate` and `openshift-sriov-network-operator` namespaces
+ - Define both NMState and SR-IOV Operators
+ - Subscribe to both NMState and SR-IOV Operators in the 4.7 channel with the consequential installation of the CRDs
+
+To apply, *as usual*, `oc create -f <path/to/sriov/install/yaml>`
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-sriov-network-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: sriov-network-operators
+  namespace: openshift-sriov-network-operator
+spec:
+  targetNamespaces:
+  - openshift-sriov-network-operator
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: sriov-network-operator-subsription
+  namespace: openshift-sriov-network-operator
+spec:
+  channel: "4.7"
+  name: sriov-network-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-nmstate
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: nmstate-operator
+  namespace: openshift-nmstate
+spec:
+  targetNamespaces:
+  - kubernetes-nmstate-operator
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: nmstate-operator-subsription
+  namespace: openshift-nmstate
+spec:
+  channel: "4.7"
+  name: kubernetes-nmstate-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+```
+
+To verify the result, you can use the CLI ...
+```console
+# oc get ClusterServiceVersions -n openshift-sriov-network-operator
+NAME                                           DISPLAY                      VERSION                 REPLACES   PHASE
+sriov-network-operator.4.7.0-202102110027.p0   SR-IOV Network Operator      4.7.0-202102110027.p0              Succeeded
+$ oc get ClusterServiceVersions -n openshift-nmstate
+NAME                                 DISPLAY                       VERSION                 REPLACES   PHASE
+kubernetes-nmstate-operator.v4.7.0   Kubernetes NMState Operator   4.7.0-202102110027.p0              Succeeded
+```
+... Or use the OpenShift Console :-)
+<img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/operator.png" width="75%" />
+
+At this point, let's conclude with NMState to have a global view of the cluster networking. Create the following instance
+```yaml
+apiVersion: nmstate.io/v1beta1
+kind: NMState
+metadata:
+  name: nmstate
+spec:
+  nodeSelector:
+    beta.kubernetes.io/arch: amd64
+```
+
+Due to the `taints` on the `worker-cnf` node, NMState won't be installed there by default. The simplest option is patching the NMState `DaemonSet`.
+
+```json
+oc patch -n openshift-nmstate DaemonSet nmstate-handler -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "tolerations": [{
+            "key": "node-role.kubernetes.io/master",
+            "operator": "Exists"
+          },
+          {
+            "key": "node-function",
+            "operator": "Equal",
+            "value": "cnf"
+          }
+        ]
+      }
+    }
+  }
+}'
+```
+
+After a few seconds, NMState will be fully functional
+```console
+# oc get NodeNetworkStates
+NAME                     AGE
+openshift-master-0       17m
+openshift-master-1       17m
+openshift-master-2       17m
+openshift-worker-0       17m
+openshift-worker-1       17m
+openshift-worker-2       17m
+openshift-worker-cnf-1   17m
+```
+
+Follows an example inspecting the worker-cnf node
+```console
+# oc get NodeNetworkStates openshift-worker-cnf-1 -o yaml
+apiVersion: nmstate.io/v1beta1
+kind: NodeNetworkState
+metadata:
+<SNIP>
+  name: openshift-worker-cnf-1
+<SNIP>
+status:
+  currentState:
+    dns-resolver:
+      config:
+        search: []
+        server: []
+      running:
+        search:
+        - ocp4.bm.nfv.io
+        server:
+        - 10.0.11.30
+    interfaces:
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: 86:E8:20:DA:23:6D
+      mtu: 1400
+      name: 2735c4a3d86e4b5
+      state: down
+      type: ethernet
+    - bridge:
+        options:
+          fail-mode: ""
+          mcast-snooping-enable: false
+          rstp: false
+          stp: false
+        port:
+        - name: br-ex
+        - name: eno2
+      ipv4:
+        address:
+        - ip: 10.0.11.11
+          prefix-length: 27
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address:
+        - ip: fe80::607:f388:b6ae:358f
+          prefix-length: 64
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: EC:F4:BB:DD:96:29
+      mtu: 1500
+      name: br-ex
+      state: up
+      type: ovs-interface
+    - bridge: {}
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: E6:6C:88:AC:8F:11
+      mtu: 1400
+      name: br-int
+      state: down
+      type: ovs-interface
+    - bridge: {}
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: F2:E4:63:2C:30:44
+      mtu: 1400
+      name: br-local
+      state: down
+      type: ovs-interface
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: 1E:1D:9F:95:40:33
+      mtu: 1400
+      name: defc676d6a60042
+      state: down
+      type: ethernet
+    - ethernet:
+        auto-negotiation: true
+        duplex: full
+        speed: 1000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address:
+        - ip: 10.0.10.9
+          prefix-length: 27
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address:
+        - ip: fe80::e06e:652f:1874:1a8b
+          prefix-length: 64
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: EC:F4:BB:DD:96:28
+      mtu: 1500
+      name: eno1
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: true
+        duplex: full
+        speed: 1000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        dhcp: false
+        enabled: false
+      ipv6:
+        autoconf: false
+        dhcp: false
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: EC:F4:BB:DD:96:29
+      mtu: 1500
+      name: eno2
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: true
+        duplex: full
+        speed: 1000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: EC:F4:BB:DD:96:2A
+      mtu: 1500
+      name: eno3
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: true
+        duplex: full
+        speed: 1000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: EC:F4:BB:DD:96:2B
+      mtu: 1500
+      name: eno4
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: true
+        duplex: full
+        speed: 10000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 0C:42:A1:40:08:B4
+      mtu: 1500
+      name: enp129s0f0
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: true
+        duplex: full
+        speed: 10000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 0C:42:A1:40:08:B5
+      mtu: 1500
+      name: enp129s0f1
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: false
+        duplex: full
+        speed: 10000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 40:A6:B7:05:BD:E0
+      mtu: 1500
+      name: enp131s0f0
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: false
+        duplex: full
+        speed: 10000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 40:A6:B7:05:BD:E1
+      mtu: 1500
+      name: enp131s0f1
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: false
+        duplex: full
+        speed: 10000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 90:E2:BA:7A:AB:3C
+      mtu: 1500
+      name: enp4s0f0
+      state: up
+      type: ethernet
+    - ethernet:
+        auto-negotiation: false
+        duplex: full
+        speed: 10000
+        sr-iov:
+          total-vfs: 0
+          vfs: []
+      ipv4:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address: []
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 90:E2:BA:7A:AB:3D
+      mtu: 1500
+      name: enp4s0f1
+      state: up
+      type: ethernet
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: BE:CD:8C:8C:60:34
+      mtu: 1400
+      name: f5804b6f987188d
+      state: down
+      type: ethernet
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: 46:BA:20:E3:F6:1D
+      mtu: 65000
+      name: genev_sys_6081
+      state: down
+      type: unknown
+    - ipv4:
+        address:
+        - ip: 169.254.0.2
+          prefix-length: 24
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        dhcp: true
+        enabled: true
+      ipv6:
+        address:
+        - ip: fe80::98f2:d0e2:e66d:54b2
+          prefix-length: 64
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        autoconf: true
+        dhcp: true
+        enabled: true
+      lldp:
+        enabled: false
+      mac-address: 74:E6:E2:FC:E3:0F
+      mtu: 1500
+      name: idrac
+      state: up
+      type: ethernet
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mtu: 65536
+      name: lo
+      state: down
+      type: unknown
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: 0A:58:A9:FE:00:01
+      mtu: 1400
+      name: ovn-k8s-gw0
+      state: down
+      type: ovs-interface
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      lldp:
+        enabled: false
+      mac-address: 22:3B:31:E9:E8:19
+      mtu: 1400
+      name: ovn-k8s-mp0
+      state: down
+      type: ovs-interface
+    route-rules:
+      config: []
+    routes:
+      config: []
+      running:
+      - destination: 0.0.0.0/0
+        metric: 100
+        next-hop-address: 10.0.11.30
+        next-hop-interface: br-ex
+        table-id: 254
+      - destination: 10.0.11.0/27
+        metric: 100
+        next-hop-address: ""
+        next-hop-interface: br-ex
+        table-id: 254
+      - destination: 10.0.10.0/27
+        metric: 108
+        next-hop-address: ""
+        next-hop-interface: eno1
+        table-id: 254
+      - destination: 169.254.0.0/24
+        metric: 105
+        next-hop-address: ""
+        next-hop-interface: idrac
+        table-id: 254
+      - destination: fe80::/64
+        metric: 100
+        next-hop-address: ""
+        next-hop-interface: br-ex
+        table-id: 254
+      - destination: fe80::/64
+        metric: 108
+        next-hop-address: ""
+        next-hop-interface: eno1
+        table-id: 254
+      - destination: fe80::/64
+        metric: 105
+        next-hop-address: ""
+        next-hop-interface: idrac
+        table-id: 254
+      - destination: ff00::/8
+        metric: 256
+        next-hop-address: ""
+        next-hop-interface: br-ex
+        table-id: 255
+      - destination: ff00::/8
+        metric: 256
+        next-hop-address: ""
+        next-hop-interface: eno1
+        table-id: 255
+      - destination: ff00::/8
+        metric: 256
+        next-hop-address: ""
+        next-hop-interface: idrac
+        table-id: 255
+  lastSuccessfulUpdateTime: "2021-03-12T17:45:35Z"
+```
+
+Well, NMState configuration is honestly single-liner. On the other hand, SR-IOV, is a bit more complex because it requires you to know the hardware.
+
+In my case, for SR-IOV, on this specific node, I have an Intel X520, an Intel XXV710, and a ~~Mellanox~~ Nvidia ConnectX-5. Given the X520 is not officially [supported by OpenShift](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html#supported-devices_about-sriov), I'm going first to [disable the admission controller webhook](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/configuring-sriov-operator.html#about-sr-iov-operator-admission-control-webhook_configuring-sriov-operator).
+
+```bash
+oc patch sriovoperatorconfig default --type=merge \
+  -n openshift-sriov-network-operator \
+  --patch '{ "spec": { "enableOperatorWebhook": false } }'
+```
+
+The `admission controller webhook` is 9 out of ten disabled in real life. When you buy hardware from Dell or HPE, the PCI Vendor and Device ID will be most probably customized by the OEM. You'll ask why in my case all devices have standard IDs: all NICs are bought directly from Intel and ~~Mellanox~~Nvidia and not by Dell. If you don't, unless your NIC is fully certified, you'll get the following error
+```console
+Error from server (no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-east): error when creating "x520.yaml": admission webhook "operator-webhook.sriovnetwork.openshift.io" denied the request: no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-east
+Error from server (no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-west): error when creating "x520.yaml": admission webhook "operator-webhook.sriovnetwork.openshift.io" denied the request: no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-west
+```
+
+See below all my NIC in this specific worker node from `lscpi`
+```console
+# lspci -nn -vvv | grep "Ethernet controller" | grep -v "Virtual Function"
+01:00.0 Ethernet controller [0200]: Intel Corporation I350 Gigabit Network Connection [8086:1521] (rev 01)
+01:00.1 Ethernet controller [0200]: Intel Corporation I350 Gigabit Network Connection [8086:1521] (rev 01)
+01:00.2 Ethernet controller [0200]: Intel Corporation I350 Gigabit Network Connection [8086:1521] (rev 01)
+01:00.3 Ethernet controller [0200]: Intel Corporation I350 Gigabit Network Connection [8086:1521] (rev 01)
+04:00.0 Ethernet controller [0200]: Intel Corporation 82599ES 10-Gigabit SFI/SFP+ Network Connection [8086:10fb] (rev 01)
+04:00.1 Ethernet controller [0200]: Intel Corporation 82599ES 10-Gigabit SFI/SFP+ Network Connection [8086:10fb] (rev 01)
+81:00.0 Ethernet controller [0200]: Mellanox Technologies MT27800 Family [ConnectX-5] [15b3:1017]
+81:00.1 Ethernet controller [0200]: Mellanox Technologies MT27800 Family [ConnectX-5] [15b3:1017]
+83:00.0 Ethernet controller [0200]: Intel Corporation Ethernet Controller XXV710 for 25GbE SFP28 [8086:158b] (rev 02)
+83:00.1 Ethernet controller [0200]: Intel Corporation Ethernet Controller XXV710 for 25GbE SFP28 [8086:158b] (rev 02)
+```
+
+One port per NIC also the view from `ethtool`
+```console
+# ethtool -i enp4s0f0
+driver: ixgbe
+version: 5.1.0-k-rh8.2.0
+firmware-version: 0x000161c1, 1.2177.0
+expansion-rom-version:
+bus-info: 0000:04:00.0
+supports-statistics: yes
+supports-test: yes
+supports-eeprom-access: yes
+supports-register-dump: yes
+supports-priv-flags: yes
+
+# ethtool -i enp131s0f0
+driver: i40e
+version: 2.8.20-k
+firmware-version: 7.10 0x800075e6 19.5.12
+expansion-rom-version:
+bus-info: 0000:83:00.0
+supports-statistics: yes
+supports-test: yes
+supports-eeprom-access: yes
+supports-register-dump: yes
+supports-priv-flags: yes
+
+# ethtool -i enp129s0f0
+driver: mlx5_core
+version: 5.0-0
+firmware-version: 16.27.2008 (MT_0000000080)
+expansion-rom-version:
+bus-info: 0000:81:00.0
+supports-statistics: yes
+supports-test: yes
+supports-eeprom-access: no
+supports-register-dump: no
+supports-priv-flags: yes
+```
+
+The configuration is very *simple*.
+Each physical NIC has two ports and we create a pool of VF per Port. In this way, redundancy can be managed.
+The `resourceName` embedds the `east` and `west` characteristic (respectively first and second port).
+
+Below you can find my Intel X520 SriovNetworkNodePolicy.
+```yaml
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: worker-cnf-intel-x520-east
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: intel_x520_east
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+  mtu: 9100
+  numVfs: 32
+  nicSelector:
+    pfNames:
+      - enp4s0f0
+    rootDevices:
+      - '0000:04:00.0'
+    vendor: '8086'
+  deviceType: vfio-pci
+  isRdma: false
+  linkType: eth
+---
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: worker-cnf-intel-x520-west
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: intel_x520_west
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+  mtu: 9100
+  numVfs: 32
+  nicSelector:
+    pfNames:
+      - enp4s0f1
+    rootDevices:
+      - '0000:04:00.1'
+    vendor: '8086'
+  deviceType: vfio-pci
+  isRdma: false
+  linkType: eth
+```
+
+Below you can find my Intel XXV710 SriovNetworkNodePolicy.
+```yaml
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: worker-cnf-intel-xxv710-east
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: intel_xxv710_east
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+  mtu: 9100
+  numVfs: 32
+  nicSelector:
+    pfNames:
+      - enp131s0f0
+  deviceType: vfio-pci
+  isRdma: false
+  linkType: eth
+---
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: worker-cnf-intel-xxv710-west
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: intel_xxv710_west
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+  mtu: 9100
+  numVfs: 32
+  nicSelector:
+    pfNames:
+      - enp131s0f1
+  deviceType: vfio-pci
+  isRdma: false
+  linkType: eth
+```
+
+Below you can find my ~~Mellanox~~ Nvidia ConnectX-5 SriovNetworkNodePolicy.
+```yaml
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: worker-cnf-mellanox-cx5-east
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: mellanox_cx5_east
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+  mtu: 9100
+  numVfs: 32
+  nicSelector:
+    pfNames:
+      - enp129s0f0
+  deviceType: netdevice
+  isRdma: true
+  linkType: eth
+---
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: worker-cnf-mellanox-cx5-west
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: mellanox_cx5_west
+  nodeSelector:
+    node-role.kubernetes.io/worker-cnf: ""
+  mtu: 9100
+  numVfs: 32
+  nicSelector:
+    pfNames:
+      - enp129s0f1
+  deviceType: netdevice
+  isRdma: true
+  linkType: eth
+```
+
+To verify the outcome, keep an eye on the worker-cnf `MachineConfigPool`, the `sriov-device-plugin` Pod (in `openshift-sriov-network-operator`) and of course on the node itself. See below the log of a successful execution.
+```console
+# oc get pods -l app=sriov-device-plugin -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP           NODE                     NOMINATED NODE   READINESS GATES
+sriov-device-plugin-pq772   1/1     Running   0          7m35s   10.0.11.11   openshift-worker-cnf-1   <none>           <none>
+
+# oc logs pod/sriov-device-plugin-pq772
+I0312 19:37:06.502704       1 manager.go:52] Using Kubelet Plugin Registry Mode
+I0312 19:37:06.502809       1 main.go:44] resource manager reading configs
+I0312 19:37:06.502918       1 manager.go:86] raw ResourceList: {"resourceList":[{"resourceName":"intel_x520_east","selectors":{"vendors":["8086"],"drivers":["vfio-pci"],"pfNames":["enp4s0f0"],"rootDevices":["0000:04:00.0"],"linkTypes":["ether"],"IsRdma":false,"NeedVhostNet":false},"SelectorObj":null},{"resourceName":"intel_x520_west","selectors":{"vendors":["8086"],"drivers":["vfio-pci"],"pfNames":["enp4s0f1"],"rootDevices":["0000:04:00.1"],"linkTypes":["ether"],"IsRdma":false,"NeedVhostNet":false},"SelectorObj":null},{"resourceName":"intel_xxv710_east","selectors":{"drivers":["vfio-pci"],"pfNames":["enp131s0f0"],"linkTypes":["ether"],"IsRdma":false,"NeedVhostNet":false},"SelectorObj":null},{"resourceName":"intel_xxv710_west","selectors":{"drivers":["vfio-pci"],"pfNames":["enp131s0f1"],"linkTypes":["ether"],"IsRdma":false,"NeedVhostNet":false},"SelectorObj":null},{"resourceName":"mellanox_cx5_east","selectors":{"pfNames":["enp129s0f0"],"linkTypes":["ether"],"IsRdma":true,"NeedVhostNet":false},"SelectorObj":null},{"resourceName":"mellanox_cx5_west","selectors":{"pfNames":["enp129s0f1"],"linkTypes":["ether"],"IsRdma":true,"NeedVhostNet":false},"SelectorObj":null}]}
+I0312 19:37:06.502966       1 factory.go:168] net device selector for resource intel_x520_east is &{DeviceSelectors:{Vendors:[8086] Devices:[] Drivers:[vfio-pci] PciAddresses:[]} PfNames:[enp4s0f0] RootDevices:[0000:04:00.0] LinkTypes:[ether] DDPProfiles:[] IsRdma:false NeedVhostNet:false}
+I0312 19:37:06.502992       1 factory.go:168] net device selector for resource intel_x520_west is &{DeviceSelectors:{Vendors:[8086] Devices:[] Drivers:[vfio-pci] PciAddresses:[]} PfNames:[enp4s0f1] RootDevices:[0000:04:00.1] LinkTypes:[ether] DDPProfiles:[] IsRdma:false NeedVhostNet:false}
+I0312 19:37:06.503006       1 factory.go:168] net device selector for resource intel_xxv710_east is &{DeviceSelectors:{Vendors:[] Devices:[] Drivers:[vfio-pci] PciAddresses:[]} PfNames:[enp131s0f0] RootDevices:[] LinkTypes:[ether] DDPProfiles:[] IsRdma:false NeedVhostNet:false}
+I0312 19:37:06.503017       1 factory.go:168] net device selector for resource intel_xxv710_west is &{DeviceSelectors:{Vendors:[] Devices:[] Drivers:[vfio-pci] PciAddresses:[]} PfNames:[enp131s0f1] RootDevices:[] LinkTypes:[ether] DDPProfiles:[] IsRdma:false NeedVhostNet:false}
+I0312 19:37:06.503028       1 factory.go:168] net device selector for resource mellanox_cx5_east is &{DeviceSelectors:{Vendors:[] Devices:[] Drivers:[] PciAddresses:[]} PfNames:[enp129s0f0] RootDevices:[] LinkTypes:[ether] DDPProfiles:[] IsRdma:true NeedVhostNet:false}
+I0312 19:37:06.503037       1 factory.go:168] net device selector for resource mellanox_cx5_west is &{DeviceSelectors:{Vendors:[] Devices:[] Drivers:[] PciAddresses:[]} PfNames:[enp129s0f1] RootDevices:[] LinkTypes:[ether] DDPProfiles:[] IsRdma:true NeedVhostNet:false}
+I0312 19:37:06.503045       1 manager.go:106] unmarshalled ResourceList: [{ResourcePrefix: ResourceName:intel_x520_east DeviceType:netDevice Selectors:0xc000298f80 SelectorObj:0xc0003969c0} {ResourcePrefix: ResourceName:intel_x520_west DeviceType:netDevice Selectors:0xc000298fa0 SelectorObj:0xc000396dd0} {ResourcePrefix: ResourceName:intel_xxv710_east DeviceType:netDevice Selectors:0xc000298fc0 SelectorObj:0xc000397040} {ResourcePrefix: ResourceName:intel_xxv710_west DeviceType:netDevice Selectors:0xc000298fe0 SelectorObj:0xc0003972b0} {ResourcePrefix: ResourceName:mellanox_cx5_east DeviceType:netDevice Selectors:0xc000299020 SelectorObj:0xc000397520} {ResourcePrefix: ResourceName:mellanox_cx5_west DeviceType:netDevice Selectors:0xc000299040 SelectorObj:0xc000397790}]
+I0312 19:37:06.503079       1 manager.go:193] validating resource name "openshift.io/intel_x520_east"
+I0312 19:37:06.503096       1 manager.go:193] validating resource name "openshift.io/intel_x520_west"
+I0312 19:37:06.503106       1 manager.go:193] validating resource name "openshift.io/intel_xxv710_east"
+I0312 19:37:06.503126       1 manager.go:193] validating resource name "openshift.io/intel_xxv710_west"
+I0312 19:37:06.503134       1 manager.go:193] validating resource name "openshift.io/mellanox_cx5_east"
+I0312 19:37:06.503141       1 manager.go:193] validating resource name "openshift.io/mellanox_cx5_west"
+I0312 19:37:06.503145       1 main.go:60] Discovering host devices
+<SNIP>
+I0312 19:37:06.618259       1 main.go:77] All servers started.
+I0312 19:37:06.618268       1 main.go:78] Listening for term signals
+I0312 19:37:07.594559       1 server.go:106] Plugin: openshift.io_mellanox_cx5_west.sock gets registered successfully at Kubelet
+I0312 19:37:07.594560       1 server.go:131] ListAndWatch(mellanox_cx5_west) invoked
+I0312 19:37:07.594586       1 server.go:139] ListAndWatch(mellanox_cx5_west): send devices &ListAndWatchResponse{Devices:[]*Device{&Device{ID:0000:81:00.6,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},&Device{ID:0000:81:00.7,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},&Device{ID:0000:81:01.0,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},&Device{ID:0000:81:01.1,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},},}
+I0312 19:37:07.594632       1 server.go:106] Plugin: openshift.io_mellanox_cx5_east.sock gets registered successfully at Kubelet
+I0312 19:37:07.594707       1 server.go:131] ListAndWatch(mellanox_cx5_east) invoked
+I0312 19:37:07.594724       1 server.go:139] ListAndWatch(mellanox_cx5_east): send devices &ListAndWatchResponse{Devices:[]*Device{&Device{ID:0000:81:00.2,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},&Device{ID:0000:81:00.3,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},&Device{ID:0000:81:00.4,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},&Device{ID:0000:81:00.5,Health:Healthy,Topology:&TopologyInfo{Nodes:[]*NUMANode{&NUMANode{ID:1,},},},},},}
+```
+
+On the node itself, you will see the following
+```console
+ip link show enp4s0f0
+5: enp4s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9100 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 90:e2:ba:7a:ab:3c brd ff:ff:ff:ff:ff:ff
+    vf 0     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off, query_rss off
+    vf 1     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off, query_rss off
+    vf 2     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off, query_rss off
+    vf 3     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off, query_rss off
+
+# ip link show enp131s0f0
+6: enp131s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9100 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 40:a6:b7:05:bd:e0 brd ff:ff:ff:ff:ff:ff
+    vf 0     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
+    vf 1     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
+    vf 2     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
+    vf 3     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
+# ip link show enp129s0f0
+11: enp129s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9100 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 0c:42:a1:40:08:b4 brd ff:ff:ff:ff:ff:ff
+    vf 0     link/ether 2a:c2:2a:07:fc:54 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
+    vf 1     link/ether f6:56:c4:90:c1:ec brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
+    vf 2     link/ether f2:21:f0:0b:eb:e4 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
+    vf 3     link/ether 36:93:08:83:b3:40 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
+#
+```
+
+Next, we will be looking at some synthetic verifications.
