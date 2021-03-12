@@ -1243,8 +1243,6 @@ Memory wise, same story, a portion of the memory is available to kernel, userlan
  - It's not possible to allocate the maximum value of HugePages
  - As a result of the fragmentation, the memory is not anymore continuous and the deterministic aspects are affected
 
-If you still want to deploy using the RT-Kernel, set the flag (pre or even post deployment) `spec.realTimeKernel.enabled` to `true`
-
 To apply, *as usual*, `oc create -f <path/to/pao/worker-cnf/profile/yaml>`
 
 ```yaml
@@ -1277,6 +1275,11 @@ spec:
   nodeSelector:
     node-role.kubernetes.io/worker-cnf: ""
 ```
+
+If you still want to deploy using the RT-Kernel, for example, when testing a radio vDU, set the flag (pre or even post PAO deployment) `spec.realTimeKernel.enabled` to `true`.
+Additionally, you should really disable SMT with the RT-Kernel. You can do that using the `nosmt` facility in the Kernel command line. Doing so, make sure to exclude the sibling threads from both Reserved and Isolated CPU; otherwise, Kubelet will fail to start. It's worth pointing out that you should study the following content made by Frank Zdarsky (Red Hat) and Raymond Knopp (Eurecom) if you're after deterministic truly scheduling latency.
+
+[Build Your Own Private 5G Network on Kubernetes](https://www.youtube.com/watch?v=R_JOhWlwsXo) - [Slides](https://static.sched.com/hosted_files/kccncna19/02/KubeCon%202019%20-%20BYO%205G%20Network.pdf)
 
 To check the installation status
 ```bash
