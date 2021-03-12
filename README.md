@@ -1243,7 +1243,7 @@ Memory wise, same story, a portion of the memory is available to kernel, userlan
  - It's not possible to allocate the maximum value of HugePages
  - As a result of the fragmentation, the memory is not anymore continuous and the deterministic aspects are affected
 
-To apply, *as usual*, `oc create -f <path/to/pao/worker-cnf/profile/yaml>`
+To apply, *as usual*, `oc create -f <path/to/pao/worker-cnf/profile/yaml>` and after a little bit the worker-cnf will reboot.
 
 ```yaml
 apiVersion: performance.openshift.io/v2
@@ -1540,5 +1540,73 @@ Mar 05 16:58:47 localhost.localdomain systemd[1]: Failed to start Hugepages-1048
 Mem:           62Gi        45Gi        16Gi       2.0Mi       257Mi        16Gi
 Swap:            0B          0B          0B
 ```
+### 7.11 Kernel Modules
+Next let's load a few kernel modules:
+* `sctp` which stand for Stream Control Transmission Protocol is actually [heavily](https://www.etsi.org/deliver/etsi_ts/138400_138499/138462/15.00.00_60/ts_138462v150000p.pdf) used in [5G for signaling](https://www.etsi.org/deliver/etsi_ts/138400_138499/138412/15.00.00_60/ts_138412v150000p.pdf)
+* `xt_u32` to allow dynamic inspection of message payloads. See [the upstream commit](https://github.com/torvalds/linux/commit/1b50b8a) for more information
 
-Next we will be looking at some synthetic verifications
+To have this modules loaded, we can use MCO (MachineConfigOperator). Ensure to match the **correct label**.
+```yaml
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker-cnf
+  name: load-sctp-modules
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+    storage:
+      files:
+        - contents:
+            source: data:,
+          mode: 420
+          overwrite: true
+          path: /etc/modprobe.d/sctp-blacklist.conf
+        - contents:
+            source: data:,
+          mode: 420
+          overwrite: true
+          path: /etc/modprobe.d/sctp_diag-blacklist.conf
+        - contents:
+            source: data:text/plain;charset=utf-8,sctp
+          mode: 420
+          overwrite: true
+          path: /etc/modules-load.d/sctp-load.conf
+        - contents:
+            source: data:text/plain;charset=utf-8,sctp_diag
+          mode: 420
+          overwrite: true
+          path: /etc/modules-load.d/sctp_diag-load.conf
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker-cnf
+  name: load-xt-u32-module
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+    storage:
+      files:
+        - contents:
+            source: data:text/plain;charset=utf-8,xt_u32
+          mode: 420
+          overwrite: true
+          path: /etc/modules-load.d/xt_u32-load.conf
+```
+
+To apply, *as usual*, `oc create -f <path/to/module/load/yaml>` and after a little bit the worker-cnf will reboot.
+
+To verify the status, upon reboot you can simply use `lsmod`.
+```console
+# lsmod | grep -E "xt_u32|sctp"
+xt_u32                 16384  0
+sctp_diag              16384  0
+inet_diag              24576  1 sctp_diag
+sctp                  405504  3 sctp_diag
+libcrc32c              16384  5 nf_conntrack,nf_nat,openvswitch,xfs,sctp
+```
