@@ -168,7 +168,7 @@ If you don't know what PAO is, I strongly encourage you to [read the official do
 
 * **CPU**: One `reserved` full core (aka 2 threads) per NUMA node, all the others `isolated` for the applications
 * **Memory**: 16GB available for the OS and Pods while all the rest configured as 1GB HugePages
-* **Topology Manager**: set to `single-numa-node` to ensure the NUMA Affinity of the Pods ([well, actually each Container in the Pod](https://kubernetes.io/docs/tasks/administer-cluster/topology-manager/#policy-single-numa-node))
+* **Topology Manager**: set to `single-numa-node` to ensure the NUMA Affinity of the Pods ([well, actually each Container in the Pod](https://kubernetes.io/docs/tasks/administer-cluster/topology-manager/#policy-single-numa-node)). *As of K8s 1.20/OCP 4.7, Topology Manager [doesn't have the ability to exclude the SMT](https://github.com/kubernetes/kubernetes/issues/74471) sibling threads (HyperThreading is the Intel name). To work around this limitation, either disable SMT from the BIOS or passing the `nosmt` through the Kernel command line in GRUB.*
 * **Kernel**: the standard, low-latency, non-RealTime kernel is used. Not every single CNF will benefit from a RealTime Kernel. RealTime always requires a RTOS and a RT application. When is not, thing will be slower without any deterministic benefit. Additionally, the RHEL Real-Time Kernel in OCP 4.6 and 4.7 has [a known issue in combination with Open vSwitch](https://bugzilla.redhat.com/show_bug.cgi?id=1918456), degrading the RT latency performance.
 
 Also available in Google Spreadsheet a table view [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the partitioning.
