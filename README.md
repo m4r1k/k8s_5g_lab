@@ -35,7 +35,6 @@ Everything that is built on top of the virtualization stack (in my case VMware v
 In the near future the following topics will also be covered
 
   - SR-IOV Operator (w/o the Webhook)
-  - PAO (w/ RT)
   - FD.IO VPP App
   - LACP Bond for physical nodes
   - Use an external CA for the entire platform
@@ -1243,6 +1242,8 @@ Memory wise, same story, a small portion of the memory is available to kernel + 
 **Fun fact** HugePages **must be** allocated at boot time prior to the Linux kernel is initiated otherwise the memory gets fragmented and:
  - It's not possible to allocate the maximum value of HugePages
  - As a result of the fragmentation, the memory is not anymore continuous and the deterministic aspects are affected
+
+If you still want to deploy using the RT-Kernel, set the flag (pre or even post deployment) `spec.realTimeKernel.enabled` to `true`
 
 To apply, *as usual*, `oc create -f <path/to/pao/worker-cnf/profile/yaml>`
 
