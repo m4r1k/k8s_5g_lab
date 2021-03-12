@@ -167,7 +167,7 @@ The OpenShift Domain configuration
 If you don't know what PAO is, I strongly encourage you to [read the official documentation](https://docs.openshift.com/container-platform/4.7/scalability_and_performance/cnf-performance-addon-operator-for-low-latency-nodes.html). In short, a [Tuned CPU-Partitioning](https://github.com/redhat-performance/tuned/tree/master/profiles/cpu-partitioning) on steroid includes [additional profiles and specific tuning for a containerization platform](https://github.com/openshift-kni/performance-addon-operators/blob/master/build/assets/tuned/openshift-node-performance) and takes into account also the K8s Topology Manager. Of course, PAO is applied only to the real physical worker nodes.
 
 * **CPU**: One `reserved` full core (aka 2 threads) per NUMA node, all the others `isolated` for the applications
-* **Memory**: 16GB available for the OS and infra Pods while all the rest configured as 1GB HugePages
+* **Memory**: 16GB available for the OS and Pods while all the rest configured as 1GB HugePages
 * **Topology Manager**: set to `single-numa-node` to ensure the NUMA Affinity of the Pods ([well, actually each Container in the Pod](https://kubernetes.io/docs/tasks/administer-cluster/topology-manager/#policy-single-numa-node))
 * **Kernel**: the standard, low-latency, non-RealTime kernel is used. Not every single CNF will benefit from a RealTime Kernel. RealTime always requires a RTOS and a RT application. When is not, thing will be slower without any deterministic benefit. Additionally, the RHEL Real-Time Kernel in OCP 4.6 and 4.7 has [a known issue in combination with Open vSwitch](https://bugzilla.redhat.com/show_bug.cgi?id=1918456), degrading the RT latency performance.
 
@@ -1237,7 +1237,7 @@ Now, the last step is to deploy PAO on our `worker-cnf` node. The following temp
 
 In my case, as good practice, the first full physical core per NUMA node is available to Kernel, hardware interrupts, and any userland/housekeeper components while all the others are fully isolated and reserved for my deterministic and high-performance workloads.
 
-Memory wise, same story, a small portion of the memory is available to kernel + userland/housekeeper component while the majority available for my workloads in form of 1GB hugepages. Out of 64GB of memory (32GB per NUMA), 28 are pre-allocated in HugePages.
+Memory wise, same story, a portion of the memory is available to kernel, userland/housekeeper component, and for any running Pods while the majority available for my workloads in form of 1GB hugepages. Out of 64GB of memory (32GB per NUMA), 48 are pre-allocated in HugePages.
 
 **Fun fact** HugePages **must be** allocated at boot time prior to the Linux kernel is initiated otherwise the memory gets fragmented and:
  - It's not possible to allocate the maximum value of HugePages
@@ -1271,7 +1271,7 @@ spec:
     - module_blacklist=ixgbevf,iavf
     - default_hugepagesz=1G
     - hugepagesz=1G
-    - hugepages=56
+    - hugepages=48
   machineConfigPoolSelector:
     machineconfiguration.openshift.io/role: worker-cnf
   nodeSelector:
@@ -1291,7 +1291,7 @@ Once is done, connect to the `worker-cnf` node and check
  - The `Kubelet` CPU reserved core and CPU Manager configuration
 ```console
 # cat /proc/cmdline
-BOOT_IMAGE=(hd0,gpt3)/ostree/rhcos-8db996458745a61fa6759e8612cc44d429af0417584807411e38b991b9bcedb9/vmlinuz-4.18.0-240.10.1.el8_3.x86_64 random.trust_cpu=on console=tty0 console=ttyS0,115200n8 ostree=/ostree/boot.1/rhcos/8db996458745a61fa6759e8612cc44d429af0417584807411e38b991b9bcedb9/0 ignition.platform.id=openstack root=UUID=a72ff11d-83fc-4ebe-a8fe-b7de1817dbf9 rw rootflags=prjquota skew_tick=1 nohz=on rcu_nocbs=2-23,26-47 tuned.non_isolcpus=03000003 intel_pstate=disable nosoftlockup tsc=nowatchdog intel_iommu=on iommu=pt isolcpus=managed_irq,2-23,26-47 systemd.cpu_affinity=0,1,24,25 + nmi_watchdog=0 audit=0 mce=off processor.max_cstate=1 idle=poll intel_idle.max_cstate=0 module_blacklist=ixgbevf,iavf default_hugepagesz=1G hugepagesz=1G hugepages=56
+BOOT_IMAGE=(hd0,gpt3)/ostree/rhcos-8db996458745a61fa6759e8612cc44d429af0417584807411e38b991b9bcedb9/vmlinuz-4.18.0-240.10.1.el8_3.x86_64 random.trust_cpu=on console=tty0 console=ttyS0,115200n8 ostree=/ostree/boot.1/rhcos/8db996458745a61fa6759e8612cc44d429af0417584807411e38b991b9bcedb9/0 ignition.platform.id=openstack root=UUID=a72ff11d-83fc-4ebe-a8fe-b7de1817dbf9 rw rootflags=prjquota skew_tick=1 nohz=on rcu_nocbs=2-23,26-47 tuned.non_isolcpus=03000003 intel_pstate=disable nosoftlockup tsc=nowatchdog intel_iommu=on iommu=pt isolcpus=managed_irq,2-23,26-47 systemd.cpu_affinity=0,1,24,25 + nmi_watchdog=0 audit=0 mce=off processor.max_cstate=1 idle=poll intel_idle.max_cstate=0 module_blacklist=ixgbevf,iavf default_hugepagesz=1G hugepagesz=1G hugepages=48
 
 # crictl exec -it $(crictl ps --quiet --name tuned) tuned-adm active
 Current active profile: openshift-node-performance-pao-worker-cnf
@@ -1425,14 +1425,14 @@ Addresses:
 Capacity:
   cpu:                48
   ephemeral-storage:  113886Mi
-  hugepages-1Gi:      56Gi
+  hugepages-1Gi:      48Gi
   hugepages-2Mi:      0
   memory:             65843552Ki
   pods:               250
 Allocatable:
   cpu:                44
   ephemeral-storage:  106402571701
-  hugepages-1Gi:      56Gi
+  hugepages-1Gi:      48Gi
   hugepages-2Mi:      0
   memory:             5996896Ki
   pods:               250
