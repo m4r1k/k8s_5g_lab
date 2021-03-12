@@ -2504,7 +2504,7 @@ I0312 19:37:07.594724       1 server.go:139] ListAndWatch(mellanox_cx5_east): se
 
 On the node itself, you will see the following
 ```console
-ip link show enp4s0f0
+# ip link show enp4s0f0
 5: enp4s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9100 qdisc mq state UP mode DEFAULT group default qlen 1000
     link/ether 90:e2:ba:7a:ab:3c brd ff:ff:ff:ff:ff:ff
     vf 0     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off, query_rss off
@@ -2526,7 +2526,6 @@ ip link show enp4s0f0
     vf 1     link/ether f6:56:c4:90:c1:ec brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
     vf 2     link/ether f2:21:f0:0b:eb:e4 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
     vf 3     link/ether 36:93:08:83:b3:40 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
-#
 ```
 
 Next, we will be looking at some synthetic verifications.
