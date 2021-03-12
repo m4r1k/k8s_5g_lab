@@ -69,13 +69,12 @@ oc adm -a ${LOCAL_SECRET_JSON} release mirror \
 ## Mirror OperatorHub
 If you want to mirror the four OCP OperatorHub (`redhat-operator-index`, `certified-operator-index`, `redhat-marketplace-index`, and `community-operator-index`) make sure to enlarge the NGiNX Client Header Buffers otherwise you will get an HTTP error 414.
 
-You can do it as follows
+You can do it as follows. Additionally, I open a PR [to fix the problem upstream](https://github.com/goharbor/harbor/pull/14429).
 ```bash
 cat > /root/harbor/harbor/common/config/nginx/conf.d/uploads.upstream.conf << EOF
 fastcgi_buffers 8 16k;
 fastcgi_buffer_size 32k;
 
-client_max_body_size 24M;
 client_body_buffer_size 128k;
 
 client_header_buffer_size 5120k;
