@@ -59,22 +59,22 @@ RELEASE_NAME="ocp-release"
 OCP_RELEASE="4.7.0"
 ARCHITECTURE="x86_64"
 LOCAL_REGISTRY="harbor.ocp4.bm.nfv.io"
-LOCAL_REPOSITORY="ocp4-releases/openshift"
+LOCAL_REPOSITORY="ocp4-releases/openshift4"
 
 oc adm -a ${LOCAL_SECRET_JSON} release mirror \
   --from=quay.io/${PRODUCT_REPO}/${RELEASE_NAME}:${OCP_RELEASE}-${ARCHITECTURE} \
-  --to=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}-${OCP_RELEASE} \
-  --to-release-image=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}-${OCP_RELEASE}:${OCP_RELEASE}-${ARCHITECTURE}
+  --to=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY} \
+  --to-release-image=${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}-${ARCHITECTURE}
 ```
 
-Once the mirroring process is over, add to the `install-config.yaml` the following section having care to use the correct OCP release
+Once the mirroring process is over, add to the `install-config.yaml` the following section
 ```yaml
 imageContentSources:
 - mirrors:
-  - harbor.ocp4.bm.nfv.io/ocp4-releases/openshift-4.7.0
+  - harbor.ocp4.bm.nfv.io/ocp4-releases/openshift4
   source: quay.io/openshift-release-dev/ocp-release
 - mirrors:
-  - harbor.ocp4.bm.nfv.io/ocp4-releases/openshift-4.7.0
+  - harbor.ocp4.bm.nfv.io/ocp4-releases/openshift4
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 ```
 ## Mirror OperatorHub
