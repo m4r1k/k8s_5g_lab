@@ -21,23 +21,23 @@ You need then to create the `pull-secret`, mine looks like the following
 {
   "auths": {
     "cloud.openshift.com": {
-      "auth": "<SNAP>",
+      "auth": "<SNIP>",
       "email": "fiezzi@redhat.com"
     },
     "quay.io": {
-      "auth": "<SNAP>",
+      "auth": "<SNIP>",
       "email": "fiezzi@redhat.com"
     },
     "registry.connect.redhat.com": {
-      "auth": "<SNAP>",
+      "auth": "<SNIP>",
       "email": "fiezzi@redhat.com"
     },
     "registry.redhat.io": {
-      "auth": "<SNAP>",
+      "auth": "<SNIP>",
       "email": "fiezzi@redhat.com"
     },
     "harbor.ocp4.bm.nfv.io": {
-      "auth": "<SNAP>",
+      "auth": "<SNIP>",
       "email": "ocp4@ocp4.bm.nfv.io"
     }
   }
