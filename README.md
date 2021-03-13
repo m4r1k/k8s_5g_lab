@@ -38,8 +38,9 @@ Even considering only 5G, orchestrating these massive applications without somet
     - [7.8 - LoadBalancer Class](#78---loadbalancer-class)
     - [7.9 - Basic HelloWorld](#79---basic-helloworld)
     - [7.10 - PAO](#710---pao)
-    - [7.11 Kernel Modules](#711-kernel-modules)
-    - [7.12 SR-IOV](#712-sr-iov)
+    - [7.11 - Kernel Modules](#711---kernel-modules)
+    - [7.12 - NMState](#712---nmstate)
+    - [7.13 - SR-IOV](#713---sr-iov)
 
 ## 2 - 5G is Containers
 From [Ericsson](https://www.ericsson.com/en/cloud-native) to [Nokia](https://www.nokia.com/blog/containers-and-the-evolving-5g-cloud-native-journey/), from [Red Hat](https://www.redhat.com/en/blog/5g-core-adoption-open-way-red-hat-openshift?source=bloglisting&page=1&search=5g+openshift) to [VMware](https://www.fiercewireless.com/tech/samsung-vmware-team-cloud-native-5g-functions), and with leading examples like [Verizon](https://www.fiercewireless.com/tech/verizon-readies-initial-shift-to-5g-standalone-core-after-successful-trial) and [Rakuten](https://www.fiercewireless.com/5g/rakuten-s-5g-network-will-be-built-containers), there is absolutely no douth that 5G means containers, and as everybody knows, containers mean Kubernetes. There are many debates whether the more significant chunk of the final architecture would be virtualized or natively running on bare-metal (there are still some cases where hardware virtualization is a fundamental need) but, in all instances, Kubernetes is the dominant and de-facto standard to build applications.
@@ -1569,7 +1570,7 @@ Mar 05 16:58:47 localhost.localdomain systemd[1]: Failed to start Hugepages-1048
 Mem:           62Gi        45Gi        16Gi       2.0Mi       257Mi        16Gi
 Swap:            0B          0B          0B
 ```
-### 7.11 Kernel Modules
+### 7.11 - Kernel Modules
 Next let's load a few kernel modules:
 * `sctp` which stand for Stream Control Transmission Protocol is actually [heavily](https://www.etsi.org/deliver/etsi_ts/138400_138499/138462/15.00.00_60/ts_138462v150000p.pdf) used in [5G for signaling](https://www.etsi.org/deliver/etsi_ts/138400_138499/138412/15.00.00_60/ts_138412v150000p.pdf)
 * `xt_u32` to allow dynamic inspection of message payloads. See [the upstream commit](https://github.com/torvalds/linux/commit/1b50b8a) for more information
@@ -1639,55 +1640,26 @@ inet_diag              24576  1 sctp_diag
 sctp                  405504  3 sctp_diag
 libcrc32c              16384  5 nf_conntrack,nf_nat,openvswitch,xfs,sctp
 ```
-### 7.12 SR-IOV
-To have SR-IOV capability in the platform, we will follow a similar approach as we did for PAO. OpenShift comes with two instrumental operators:
- - [SR-IOV Network Operator](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html) to configure and manage SR-IOV devices
- - [NMState Operator](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-about-the-k8s-nmstate-operator.html) to configure the network interfaces (as the name suggests, is NetworkManager driven).
-  
-Starting with OCP 4.7, NMstate is available through the OperatorHub. If you are on an older/different version, you can always go down [the upstream path](https://github.com/nmstate/kubernetes-nmstate/releases) (don't forget to deploy the SCC too).
+### 7.12 - NMState
+From OCP 4.7 we have [NMState Operator](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-about-the-k8s-nmstate-operator.html) which is instrumental to configure the network interfaces (as the name suggests, is NetworkManager driven).
+
+If you are on an older/different version, you can always consume [upstream bits](https://github.com/nmstate/kubernetes-nmstate/releases) (don't forget to deploy the SCC too).
 
 In the near future, [NMState will also manage the Link Aggregation](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-updating-node-network-config.html) with OVN-Kubernetes, but for the time being, [this won't be possible](https://github.com/openshift/openshift-docs/commit/671bb09) :-(
 
-For those who are wondering, Multus is [pre-installed and pre-configured out of the box](https://docs.openshift.com/container-platform/4.7/networking/multiple_networks/understanding-multiple-networks.html). Red Hat wrote an amazing ["Demystifying Multus" blog post](https://www.openshift.com/blog/demystifying-multus) explaining all bits and pieces.
+The high-level process for NMState is as following
+ - Create a namespace for the NMState operator
+ - Install the `openshift-nmstate` from OperatorHub
+ - Deploy a NMState instance to collect all the networking details
+ - Patch the `DaemonSet` to have NMState running also on the worker-cnf node
 
-The high-level process for NMState and SR-IOV is as following
- - Create a namespace for the SR-IOV operator and another one for NMState
- - Install the `sriov-network-operators` and `openshift-nmstate` from OperatorHub
- - Deploy a `MachineConfigPool` with the `worker-cnf` nodeSelector
- - Deploy a `PerformanceProfile` still using the `worker-cnf` nodeSelector
-
-So going low-level, let's create the following YAML containing the basic steps to install NMState and the SR-IOV Operator from OperatorHub
- - Create the `openshift-nmstate` and `openshift-sriov-network-operator` namespaces
- - Define both NMState and SR-IOV Operators
- - Subscribe to both NMState and SR-IOV Operators in the 4.7 channel with the consequential installation of the CRDs
+So going low-level, let's create the following YAML containing the basic steps to install NMState from OperatorHub
+ - Create the `openshift-nmstate` namespaces
+ - Define the NMState Operator
+ - Subscribe to NMState Operator in the 4.7 channel with the consequential installation of the CRDs
 
 To apply, *as usual*, `oc create -f <path/to/sriov/install/yaml>`
 ```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-sriov-network-operator
----
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: sriov-network-operators
-  namespace: openshift-sriov-network-operator
-spec:
-  targetNamespaces:
-  - openshift-sriov-network-operator
----
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: sriov-network-operator-subsription
-  namespace: openshift-sriov-network-operator
-spec:
-  channel: "4.7"
-  name: sriov-network-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
----
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -1716,9 +1688,6 @@ spec:
 
 To verify the result, you can use the CLI ...
 ```console
-# oc get ClusterServiceVersions -n openshift-sriov-network-operator
-NAME                                           DISPLAY                      VERSION                 REPLACES   PHASE
-sriov-network-operator.4.7.0-202102110027.p0   SR-IOV Network Operator      4.7.0-202102110027.p0              Succeeded
 $ oc get ClusterServiceVersions -n openshift-nmstate
 NAME                                 DISPLAY                       VERSION                 REPLACES   PHASE
 kubernetes-nmstate-operator.v4.7.0   Kubernetes NMState Operator   4.7.0-202102110027.p0              Succeeded
@@ -2299,7 +2268,58 @@ status:
   lastSuccessfulUpdateTime: "2021-03-12T17:45:35Z"
 ```
 
-Well, NMState configuration is honestly single-liner. On the other hand, SR-IOV, is a bit more complex because it requires you to know the hardware.
+Well, NMState configuration is honestly single-liner. On the other hand, SR-IOV, is a bit more complex because it requires you to know the hardware. Let's get into it.
+
+### 7.13 - SR-IOV
+To have SR-IOV capability in the platform, we will follow a similar approach as we did for PAO and NMState. OpenShift comes with everything:
+ - [SR-IOV Network Operator](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html)
+ - Multus which is [pre-installed and pre-configured out of the box](https://docs.openshift.com/container-platform/4.7/networking/multiple_networks/understanding-multiple-networks.html). Red Hat wrote an amazing ["Demystifying Multus" blog post](https://www.openshift.com/blog/demystifying-multus) explaining all bits and pieces
+
+The high-level process for SR-IOV is as following
+ - Create a namespace for the SR-IOV operator
+ - Install the `sriov-network-operators` from OperatorHub
+ - Disable the `admission controller webhook`
+ - Deploy the SR-IOV configuration for the `worker-cnf` to configure the VF
+
+So going low-level, let's create the following YAML containing the basic steps to install the SR-IOV Operator from OperatorHub
+ - Create the `openshift-sriov-network-operator` namespaces
+ - Define the SR-IOV Operator
+ - Subscribe to the SR-IOV Operator in the 4.7 channel with the consequential installation of the CRDs
+
+To apply, *as usual*, `oc create -f <path/to/sriov/install/yaml>`
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-sriov-network-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: sriov-network-operators
+  namespace: openshift-sriov-network-operator
+spec:
+  targetNamespaces:
+  - openshift-sriov-network-operator
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: sriov-network-operator-subsription
+  namespace: openshift-sriov-network-operator
+spec:
+  channel: "4.7"
+  name: sriov-network-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+```
+
+To verify the result, you can use the CLI or also the OpenShift Dashboard
+```console
+# oc get ClusterServiceVersions -n openshift-sriov-network-operator
+NAME                                           DISPLAY                      VERSION                 REPLACES   PHASE
+sriov-network-operator.4.7.0-202102110027.p0   SR-IOV Network Operator      4.7.0-202102110027.p0              Succeeded
+```
 
 In my case, for SR-IOV, on this specific node, I have an Intel X520, an Intel XXV710, and a ~~Mellanox~~ Nvidia ConnectX-5. Given the X520 is not officially [supported by OpenShift](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html#supported-devices_about-sriov), I'm going first to [disable the admission controller webhook](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/configuring-sriov-operator.html#about-sr-iov-operator-admission-control-webhook_configuring-sriov-operator).
 
@@ -2309,7 +2329,7 @@ oc patch sriovoperatorconfig default --type=merge \
   --patch '{ "spec": { "enableOperatorWebhook": false } }'
 ```
 
-The `admission controller webhook` is 9 out of ten disabled in real life. When you buy hardware from Dell or HPE, the PCI Vendor and Device ID will be most probably customized by the OEM. You'll ask why in my case all devices have standard IDs: all NICs are bought directly from Intel and ~~Mellanox~~Nvidia and not by Dell. If you don't, unless your NIC is fully certified, you'll get the following error
+The `admission controller webhook` is 9 out of ten disabled in real life scenarios. When you buy hardware from Dell or HPE, the PCI Vendor and Device ID will be most probably customized by the OEM. You'll ask why in my case all devices have standard IDs: all NICs are bought directly from Intel and ~~Mellanox~~ Nvidia and not by Dell. If you don't disable it, unless your NIC is fully certified, you'll get the following error
 ```console
 Error from server (no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-east): error when creating "x520.yaml": admission webhook "operator-webhook.sriovnetwork.openshift.io" denied the request: no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-east
 Error from server (no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-west): error when creating "x520.yaml": admission webhook "operator-webhook.sriovnetwork.openshift.io" denied the request: no supported NIC is selected by the nicSelector in CR worker-cnf-intel-x520-west
@@ -2369,11 +2389,11 @@ supports-register-dump: no
 supports-priv-flags: yes
 ```
 
-The configuration is very *simple*.
+The configuration is somehow *simple* ...
 Each physical NIC has two ports and we create a pool of VF per Port. In this way, redundancy can be managed.
-The `resourceName` embedds the `east` and `west` characteristic (respectively first and second port).
+The `resourceName` embedds the `east` and `west` characteristic (respectively `first` and `second` port of the NIC).
 
-Below you can find my Intel X520 SriovNetworkNodePolicy.
+Below you can find my Intel X520 `SriovNetworkNodePolicy`
 ```yaml
 apiVersion: sriovnetwork.openshift.io/v1
 kind: SriovNetworkNodePolicy
@@ -2418,7 +2438,7 @@ spec:
   linkType: eth
 ```
 
-Below you can find my Intel XXV710 SriovNetworkNodePolicy.
+Below you can find my Intel XXV710 `SriovNetworkNodePolicy`
 ```yaml
 apiVersion: sriovnetwork.openshift.io/v1
 kind: SriovNetworkNodePolicy
@@ -2457,7 +2477,7 @@ spec:
   linkType: eth
 ```
 
-Below you can find my ~~Mellanox~~ Nvidia ConnectX-5 SriovNetworkNodePolicy.
+Below you can find my ~~Mellanox~~ Nvidia ConnectX-5 `SriovNetworkNodePolicy`
 ```yaml
 apiVersion: sriovnetwork.openshift.io/v1
 kind: SriovNetworkNodePolicy
@@ -2497,6 +2517,7 @@ spec:
 ```
 
 To verify the outcome, keep an eye on the worker-cnf `MachineConfigPool`, the `sriov-device-plugin` Pod (in `openshift-sriov-network-operator`) and of course on the node itself. See below the log of a successful execution.
+
 ```console
 # oc get pods -l app=sriov-device-plugin -o wide
 NAME                        READY   STATUS    RESTARTS   AGE     IP           NODE                     NOMINATED NODE   READINESS GATES
@@ -2558,4 +2579,4 @@ On the node itself, you will see the following
     vf 3     link/ether 36:93:08:83:b3:40 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
 ```
 
-Next, we will be looking at some synthetic verifications.
+Next, we will be looking at some verifications.
