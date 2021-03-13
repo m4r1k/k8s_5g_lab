@@ -1006,35 +1006,61 @@ This is how it looks once all done
 ### 7.7 - NFS Storage Class and OCP internal Registry
 Next step is to lavarage the RHEL NFS Server for persistent storage. Luckly this is uber easy (don't forget to [install the `helm` CLI](https://mirror.openshift.com/pub/openshift-v4/clients/helm/latest)). See the official documentation for [all the supported options by the Helm Chart](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/charts/nfs-subdir-external-provisioner/README.md) (such as `storageClass.accessModes`, `nfs.mountOptions`, `storageClass.reclaimPolicy`, etc)
 
-* Add NFS SIG Repo
+* Create the `nfs-external-provisioner` namespace
+* Grant the Service Accounts `nfs-subdir-external-provisioner` with the `hostmount-anyuid` role
+* Add NFS SIG Repo in Helm
 * Install the NFS SIG
 
 ```bash
-
 _NAMESPACE="nfs-external-provisioner"
+
+oc new-project ${_NAMESPACE}
+
+oc adm policy add-scc-to-user hostmount-anyuid \
+  -n ${_NAMESPACE} \
+  -z nfs-subdir-external-provisioner
 
 helm repo add nfs-subdir-external-provisioner \
      https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
 
 helm install nfs-subdir-external-provisioner \
-     nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
-     --set nfs.server=nfs-server \
-     --set nfs.path=/nfs
-     --set storageClass.defaultClass=true \
-     --create-namespace ${_NAMESPACE}
+    nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+    --set nfs.server=nfs-server \
+    --set nfs.path=/nfs \
+    --set storageClass.defaultClass=true \
+    --namespace ${_NAMESPACE}
 ```
-In case you face issues during the volume recycle, this could be related to the SCC. Make sure to grant the SCC `hostmount-anyuid` to the nfs-subdir-external-provisioner service account `nfs-client-provisioner` in the deployed namespace `nfs-external-provisioner`.
+
+If both your NFS Server supports NConnect (CentOS 8 Stream does) and you use minimum OCP 4.7 (which includes the RHEL 8.3 NFS client bits), you can also add the following to the `helm install` command and [enjoy much higher NFS speeds](https://medium.com/@emilypotyraj/use-nconnect-to-effortlessly-increase-nfs-performance-4ceb46c64089)
+
+```console
+    --set nfs.mountOptions="{nconnect=16}"
+```
+
+To verify the result, check the events and verify that the `nfs-subdir-external-provisioner` Pod is running
 
 ```bash
-oc adm policy add-scc-to-user hostmount-anyuid \
-  -n nfs-external-provisioner \
-  -z nfs-client-provisioner
-```
-To actually see (and check) the result, run the following
+# oc get events -n nfs-external-provisioner --sort-by='lastTimestamp'
+LAST SEEN   TYPE     REASON              OBJECT                                                    MESSAGE
+59s         Normal   CreatedSCCRanges    namespace/nfs-external-provisioner                        created SCC ranges
+57s         Normal   Scheduled           pod/nfs-subdir-external-provisioner-7b75766446-6cmdc      Successfully assigned nfs-external-provisioner/nfs-subdir-external-provisioner-7b75766446-6cmdc to openshift-worker-1
+57s         Normal   SuccessfulCreate    replicaset/nfs-subdir-external-provisioner-7b75766446     Created pod: nfs-subdir-external-provisioner-7b75766446-6cmdc
+57s         Normal   ScalingReplicaSet   deployment/nfs-subdir-external-provisioner                Scaled up replica set nfs-subdir-external-provisioner-7b75766446 to 1
+54s         Normal   LeaderElection      endpoints/cluster.local-nfs-subdir-external-provisioner   nfs-subdir-external-provisioner-7b75766446-6cmdc_b5caecc3-df22-4e69-b621-f73689aa1974 became leader
+54s         Normal   AddedInterface      pod/nfs-subdir-external-provisioner-7b75766446-6cmdc      Add eth0 [10.131.0.29/23]
+54s         Normal   Pulled              pod/nfs-subdir-external-provisioner-7b75766446-6cmdc      Container image "gcr.io/k8s-staging-sig-storage/nfs-subdir-external-provisioner:v4.0.0" already present on machine
+54s         Normal   Created             pod/nfs-subdir-external-provisioner-7b75766446-6cmdc      Created container nfs-subdir-external-provisioner
+54s         Normal   Started             pod/nfs-subdir-external-provisioner-7b75766446-6cmdc      Started container nfs-subdir-external-provisioner
 
-```
-oc get events -n nfs-external-provisioner --sort-by='lastTimestamp'
-oc get all -n nfs-external-provisioner
+# oc get all -n nfs-external-provisioner
+NAME                                                   READY   STATUS    RESTARTS   AGE
+pod/nfs-subdir-external-provisioner-7b75766446-6cmdc   1/1     Running   0          58s
+
+NAME                                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nfs-subdir-external-provisioner   1/1     1            1           58s
+
+NAME                                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/nfs-subdir-external-provisioner-7b75766446   1         1         1       58s
 ```
 Installing the NFS Storage Class was very easy, now let's ensure the internal OCP Registry will user it
 
