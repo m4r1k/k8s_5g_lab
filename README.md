@@ -11,6 +11,36 @@ The 5G standard allows decoupling the various components into literally thousand
 <img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/mobile_network.png" />
 
 Even considering only 5G, orchestrating these massive applications without something like Kubernetes would be impossible.
+
+- [OpenShift 5G Telco Lab](#openshift-5g-telco-lab)
+  - [1 - Introduction](#1---introduction)
+  - [2 - 5G is Containers](#2---5g-is-containers)
+    - [2.1 - Why Bare-metal?](#21---why-bare-metal)
+  - [3 - About this document](#3---about-this-document)
+    - [3.1 - TODOs and upcoming releases](#31---todos-and-upcoming-releases)
+  - [4 - Lab High-Level](#4---lab-high-level)
+  - [5 - vSphere Architecture](#5---vsphere-architecture)
+    - [5.1 - Virtual Baseboard Management Controller](#51---virtual-baseboard-management-controller)
+    - [5.2 How to get VMware Subscriptions](#52-how-to-get-vmware-subscriptions)
+  - [6 - Red Hat OpenShift Architecture](#6---red-hat-openshift-architecture)
+    - [6.1 - Performance Addon Operator aka PAO](#61---performance-addon-operator-aka-pao)
+  - [7 - Deployment](#7---deployment)
+    - [7.1 - RootCA, Router, NFS Server and Provisioner VMs](#71---rootca-router-nfs-server-and-provisioner-vms)
+      - [7.1.1 - Common steps](#711---common-steps)
+      - [7.1.2 - RootCA](#712---rootca)
+    - [7.2 - Router](#72---router)
+      - [7.2.1 - vBMC](#721---vbmc)
+    - [7.3 - NFS Server](#73---nfs-server)
+    - [7.4 - Provisioner](#74---provisioner)
+    - [7.5 - OpenShift deployment](#75---openshift-deployment)
+    - [7.6 - Adding Physical OpenShift Nodes](#76---adding-physical-openshift-nodes)
+    - [7.7 - NFS Storage Class and OCP internal Registry](#77---nfs-storage-class-and-ocp-internal-registry)
+    - [7.8 - LoadBalancer Class](#78---loadbalancer-class)
+    - [7.9 - Basic HelloWorld](#79---basic-helloworld)
+    - [7.10 - PAO](#710---pao)
+    - [7.11 Kernel Modules](#711-kernel-modules)
+    - [7.12 SR-IOV](#712-sr-iov)
+
 ## 2 - 5G is Containers
 From [Ericsson](https://www.ericsson.com/en/cloud-native) to [Nokia](https://www.nokia.com/blog/containers-and-the-evolving-5g-cloud-native-journey/), from [Red Hat](https://www.redhat.com/en/blog/5g-core-adoption-open-way-red-hat-openshift?source=bloglisting&page=1&search=5g+openshift) to [VMware](https://www.fiercewireless.com/tech/samsung-vmware-team-cloud-native-5g-functions), and with leading examples like [Verizon](https://www.fiercewireless.com/tech/verizon-readies-initial-shift-to-5g-standalone-core-after-successful-trial) and [Rakuten](https://www.fiercewireless.com/5g/rakuten-s-5g-network-will-be-built-containers), there is absolutely no douth that 5G means containers, and as everybody knows, containers mean Kubernetes. There are many debates whether the more significant chunk of the final architecture would be virtualized or natively running on bare-metal (there are still some cases where hardware virtualization is a fundamental need) but, in all instances, Kubernetes is the dominant and de-facto standard to build applications.
 
@@ -34,7 +64,6 @@ Everything that is built on top of the virtualization stack (in my case VMware v
 ### 3.1 - TODOs and upcoming releases
 In the near future the following topics will also be covered
 
-  - SR-IOV Operator (w/o the Webhook)
   - FD.IO VPP App
   - LACP Bond for physical nodes
   - Use an external CA for the entire platform
@@ -2519,6 +2548,7 @@ On the node itself, you will see the following
     vf 1     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
     vf 2     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
     vf 3     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff, spoof checking on, link-state auto, trust off
+
 # ip link show enp129s0f0
 11: enp129s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9100 qdisc mq state UP mode DEFAULT group default qlen 1000
     link/ether 0c:42:a1:40:08:b4 brd ff:ff:ff:ff:ff:ff
