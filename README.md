@@ -2605,4 +2605,11 @@ On the node itself, you will see the following
     vf 3     link/ether 36:93:08:83:b3:40 brd ff:ff:ff:ff:ff:ff, spoof checking off, link-state auto, trust off, query_rss off
 ```
 
+As a more Operator-driven approach to verify the result, you can query the status of `sriovnetworknodestates` providing the name of the worker node.
+
+```console
+# oc get sriovnetworknodestates -n openshift-sriov-network-operator openshift-worker-cnf-1 -o jsonpath='{.status.syncStatus}'
+Succeeded
+```
+
 Next, we will be looking at some verifications.
