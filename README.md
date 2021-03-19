@@ -35,7 +35,7 @@ Even considering only 5G, orchestrating these massive applications without somet
     - [7.5 - OpenShift deployment](#75---openshift-deployment)
     - [7.6 - Adding Physical OpenShift Nodes](#76---adding-physical-openshift-nodes)
     - [7.7 - NFS Storage Class and OCP internal Registry](#77---nfs-storage-class-and-ocp-internal-registry)
-    - [7.8 - LoadBalancer Class](#78---loadbalancer-class)
+    - [7.8 - Service Type LoadBalancer](#78---service-type-loadbalancer)
     - [7.9 - Basic HelloWorld](#79---basic-helloworld)
     - [7.10 - PAO](#710---pao)
     - [7.11 - Kernel Modules](#711---kernel-modules)
@@ -1093,9 +1093,10 @@ sudo podman image push ${_HOST}/default/alpine:latest --tls-verify=false
 sudo podman search ${_HOST}/ --tls-verify=false
 ```
 
-### 7.8 - LoadBalancer Class
-Something currently missing from OCP for Baremetal is a LoadBalancer. We're going to use MetalLB here. In this initial release, the focus is L2 and BGP will come later.
+### 7.8 - Service Type LoadBalancer
+Something currently missing in OpenShift Baremetal is a Service type LoadBalancer. We're going to use MetalLB here. In this initial release, the focus is L2 and BGP will follow later. [On Medium you can find a simple yet effective description of all K8s service types](https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0).
 
+So we're gonna do the following:
 * Create the `metallb-system` namespace
 * Grant SCC `privilaged` status for both `speaker` and `controller` ServiceAccounts in the `metallb-system` namespace
 * Deploy MetalLB
