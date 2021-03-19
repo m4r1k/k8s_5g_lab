@@ -963,7 +963,11 @@ EOF
 
 The template can be deployed with a simple `oc apply -f <path/to/machine/set/yaml>` ([BTW, about `create` vs. `apply`](https://stackoverflow.com/questions/47369351/kubectl-apply-vs-kubectl-create)).
 
-Once that's done, we can also provision a new node, follows again a sample template. Ensure the same labels between the MachineSet's `hostSelector.matchLabels` and `metadata.labels` here. Same goes for the authentication credentails and the mac-address
+Once that's done, we can also provision a new node, follows again a sample template. Ensure the same labels between the MachineSet's `hostSelector.matchLabels` and `metadata.labels` here. Same goes for the authentication credentails and the `mac-address`.
+
+One additional comment, instead of going for a traditional deployment, you could opt for [Virtual Media](https://docs.openstack.org/ironic/latest/admin/drivers/redfish.html#virtual-media-boot). If you do that, you need to have both ways IP connectivity between the Metal3 and the BMC device
+* The `Ironic-Conductor` in Metal3 needs to speak with the BMC over RedFish for power management, set the boot device, and configure the virtual media
+* The BMC device needs to reach the `httpd` Metal3 container (`clusterProvisioningIP` on port `6180/TCP`) to mount the RHCOS ISO
 
 ```yaml
 ---
