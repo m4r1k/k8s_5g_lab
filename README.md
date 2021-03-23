@@ -133,10 +133,10 @@ Regarding the VMs configuration:
 ### 5.1 - Virtual Baseboard Management Controller
 The only real peculiarity in this environment is that OpenShift is deployed using IPI for Bare-metal on a mix vSphere and physical hardware. VMware doesn't have something like a virtual IPMI device; hence a vBMC solution is used.
 
-* For this environment, *[virtualbmc-for-vsphere](https://github.com/kurokobo/virtualbmc-for-vsphere)* is the vBMC solution managing the power management of the VMs. HUGE Thanks to @kurokobo for his massive work on *virtualbmc-for-vsphere* and effectively setting the [foundation of this lab](https://blog.kurokobo.com/archives/3524) (in case the blog disappear, [link to web archive](https://web.archive.org/web/20201127180855/https://blog.kurokobo.com/archives/3524))
+* For this environment, *[virtualbmc-for-vsphere](https://github.com/kurokobo/virtualbmc-for-vsphere)* is the vBMC solution managing the power management of the VMs. HUGE Thanks to [@kurokobo](https://github.com/kurokobo) for his massive work on *virtualbmc-for-vsphere* and effectively setting the [foundation of this lab](https://blog.kurokobo.com/archives/3524) (in case the blog disappear, [link to web archive](https://web.archive.org/web/20201127180855/https://blog.kurokobo.com/archives/3524))
 * As an alternative option, a combination of *[python-virtualbmc](https://pypi.org/project/virtualbmc/) plus libvirt* is also possible (this is how my [OpenStack NFVi Lab works](https://github.com/m4r1k/nfvi_lab/blob/osp16/hci-esxi/vBMC.sh))
 
-I personally tested both methods and they work very well. Moreover, for about a year now, the pure *python-virtualbmc plus libvirt* approach has been rock solid in my NFVi OpenStack Lab, but there is a caveat: while with *python-virtualbmc* the VM's boot order must be manually configured (PXE always first) @kurokobo [made a specific implementation](https://github.com/kurokobo/virtualbmc-for-vsphere/commit/2380859) to solve this problem effectively making *virtualbmc-for-vsphere* superior.
+I personally tested both methods and they work very well. Moreover, for about a year now, the pure *python-virtualbmc plus libvirt* approach has been rock solid in my NFVi OpenStack Lab, but there is a caveat: while with *python-virtualbmc* the VM's boot order must be manually configured (PXE always first) [@kurokobo](https://github.com/kurokobo) [made a specific implementation](https://github.com/kurokobo/virtualbmc-for-vsphere/commit/2380859) to solve this problem effectively making *virtualbmc-for-vsphere* superior.
 
 ### 5.2 How to get VMware Subscriptions
 There are mainly two ways (*besides buying a complete subscription*)
@@ -415,7 +415,7 @@ Let's, first of all, install Python virtual environments
 ```bash
 dnf install -y ipmitool OpenIPMI python3-virtualenv python3-pyvmomi gcc make
 ``` 
-Then we can proceed with the installation of `virtualbmc-for-vsphere` from @kurokobo - Thanks again!
+Then we can proceed with the installation of `virtualbmc-for-vsphere` from [@kurokobo](https://github.com/kurokobo) - Thanks again!
 
 ```bash
 virtualenv /root/vBMC
