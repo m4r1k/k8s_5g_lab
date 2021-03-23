@@ -105,7 +105,7 @@ Let's address the elephant in the room: why VMware vSphere? Well, there are a co
 
 The vSphere architecture is also very lean. Its usually as updated as possible, generally running the latest version plus the DellEMC Bundle.
 
-* ESXi 7.0 7.0 Update 2 (`17630552`)
+* ESXi 7.0 Update 2 (`17630552`)
 * vCenter Server deployed through vCSA 7.0 Update 2 (`17694817`)
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
