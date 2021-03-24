@@ -66,13 +66,12 @@ Everything that is built on top of the virtualization stack (in my case VMware v
 In the near future the following topics will also be covered
 
   - FD.IO VPP App
-  - LACP Bond for physical nodes
   - Use an external CA for the entire platform
   - Local *cache* (OCI Registry + RHCOS Images)
   - MetalLB BGP
   - Contour
   - CNV
-  - Ditch NFS for Rook
+  - Rook
 ## 4 - Lab High-Level
 ![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
 
@@ -1678,6 +1677,8 @@ From OCP 4.7 we have [NMState Operator](https://docs.openshift.com/container-pla
 If you are on an older/different version, you can always consume [upstream bits](https://github.com/nmstate/kubernetes-nmstate/releases) (don't forget to deploy the SCC too).
 
 In the near future, [NMState will also manage the Link Aggregation](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-updating-node-network-config.html) with OVN-Kubernetes, but for the time being, [this won't be possible](https://github.com/openshift/openshift-docs/commit/671bb09) :-(
+
+Meanwhile NMState and OCP get ready, check-out the [network-bonding](https://github.com/m4r1k/k8s_5g_lab/tree/main/network-bonding) folder to have a workaround.
 
 The high-level process for NMState is as following
  - Create a namespace for the NMState operator
