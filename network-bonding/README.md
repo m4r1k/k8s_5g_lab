@@ -17,6 +17,7 @@ This approach has two main advantages:
 - The configuration is crafted directly from NetworkManager
 - Pre-tested on the target hardware
 
+*As an alternative and more synthetical approach, you can also look at the [NetworkManager tests](https://github.com/NetworkManager/NetworkManager-ci/blob/master/nmcli/features/bond.feature) for the bonding*
 ## CoreOS `nmconnection`
 
 The next step is to create the network configuration files for RHCOS, taking as input all the details from NetworkManager done earlier.
@@ -195,10 +196,10 @@ And how does it look the final result? Well, we can see that inside the `br-ex` 
             Interface br-ex
                 type: internal
     ovs_version: "2.13.2"
-[root@openshift-worker-cnf-1 ~]# ip a show br-ex
+[root@openshift-worker-cnf-1 ~]# ip address show br-ex
 9: br-ex: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
     link/ether ec:f4:bb:dd:96:29 brd ff:ff:ff:ff:ff:ff
-    inet 10.0.11.5/27 brd 10.0.11.31 scope global dynamic noprefixroute br-ex
+    inet 10.0.11.11/27 brd 10.0.11.31 scope global dynamic noprefixroute br-ex
        valid_lft 3082sec preferred_lft 3082sec
     inet6 fe80::502b:19fd:a08d:f14f/64 scope link noprefixroute
        valid_lft forever preferred_lft forever
