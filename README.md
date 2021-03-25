@@ -75,7 +75,7 @@ In the near future the following topics will also be covered
 ## 4 - Lab High-Level
 ![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
 
-The lab is quite linear. Fundamentally there are three PowerEdge and a Brocade Fabric:
+The lab is quite linear. Fundamentally there are three PowerEdge Server and a Brocade Fabric:
 
 * A single Brocade ICX 6610 as Network Fabric for 1/10/40Gbps connections
 	* 1Gbps on copper
@@ -83,13 +83,14 @@ The lab is quite linear. Fundamentally there are three PowerEdge and a Brocade F
 	* The ICX will also act as a BGP router for MetalLB
 * For the server hardware, three PowerEdge server G13 from Dell-EMC
 	* The ESXi node is an R630 with 2x Xeon E5-2673 v4 (40 cores/80 threads) and 256GB of memory
-	* The physical OCP Worker node is also Dell-EMC R630 with 2x Xeon E5-2678 v3 (24 cores/48 threads) and 64GB of memory
-	* There is a 3rd node, an R730xd (2x Xeon E5-2673 v4 + 128GB of memory) currently used only as a traffic generator
+	* The physical OCP Worker node is also an R630 with 2x Xeon E5-2678 v3 (24 cores/48 threads) and 64GB of memory
+	* There 3rd node, an R730xd (2x Xeon E5-2673 v4 + 128GB of memory) currently used only as a traffic generator
 
-More physical and connectivity details available in Google Spreadsheet [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing). [Brocade ICX config available as well](https://github.com/m4r1k/k8s_5g_lab/tree/main/switch).
+More information about the hardware physical layout:
+* Lab [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing)
+* Brocade Fabric ICX [config](https://github.com/m4r1k/k8s_5g_lab/tree/main/switch)
 
 Software-wise, things are also very linear:
-
 * As the generic OS to provide all sort of functions (Routing, NAT, DHCP, DNS, NTP etc): CentOS Stream 8
 * CentOS Stream 8 is also used for NFS (the [Kubernetes SIG NFS Client](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) is deployed to have the NFS Storage Class) and OCP moving to the [RHEL 8.3 kernel](https://bugzilla.redhat.com/show_bug.cgi?id=1761352) with OCP 4.7, [`NFS session trunking`](https://www.spinics.net/lists/linux-nfs/msg63368.html) [becomes available](https://access.redhat.com/solutions/4090971)
 * OpenShift Container Platform version 4.7 (but the aim here is to have something entirely usable for future major releases)
