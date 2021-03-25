@@ -34,7 +34,7 @@ Based on the network topology, follows the configuration
 
 During the installation, the [OpenShift MCO will automatically connect the VLAN interface](https://github.com/trozet/machine-config-operator/commit/64b79df) under Open vSwitch's `br-ex` and [all the DHCP details](https://github.com/openshift/machine-config-operator/pull/2264) are also taken care of.
 
-Follows the `bond0.nmconnection` config file for the bond. Under the `bond` section all sort of customization can be done such as the `mode` to identify the LAG technology, `primary` to identify the primary interface, `xmit_hash_policy` for the traffic hashing policy, `lacp_rate` for the LACP PDU rate, `ad_select` for the bandwidth aggregation logic etc.
+Follows the `bond0.nmconnection` config file for the bond. Under the `bond` section, all sort of customization can be done, such as the `mode` to identify the LAG technology, `primary` to identify the primary interface, `xmit_hash_policy` for the traffic hashing policy, `lacp_rate` for the LACP PDU rate, `ad_select` for the bandwidth aggregation logic, etc.
 ```ini
 [connection]
 id=bond0
