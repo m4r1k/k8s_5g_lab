@@ -98,7 +98,7 @@ Software-wise, things are also very linear:
 ## 5 - vSphere Architecture
 <img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/vsphere.png" width="50%" />
 
-Let's address the elephant in the room: why VMware vSphere? Well, there are a couple of reasons, but before that let me state loud and clear, everything achived in this document can absolutely be done on plain Linux KVM. VMware vSphere is my choise and doesn't have to be yours: 
+Let's address the elephant in the room: why VMware vSphere? Well, there are a couple of reasons, but before that let me state loud and clear, everything achived in this document can absolutely be done on plain Linux KVM. VMware vSphere is my choise and doesn't have to be yours:
 
 * While OpenShift supports many on-premise platforms (OpenStack, oVirt, pure bare-metal, and vSphere), the power of an indeed Enterprise Virtualization Platform could play an essential role in how the lab evolves, and it could also act as a reference (for example, today real production on bare-metal has a minimum footprint of 7 nodes: 3x Master + 3x Infra + 1x Provisioner)
 * *In general*, VMware is just better at hardware virtualization and there might be some edge cases where it becomes instrumental. Last year my [OpenStack NFVi Lab moved to vSphere](https://github.com/m4r1k/nfvi_lab/commit/d7149a1) because I wanted to expose virtual NVME devices to my Ceph Storage nodes (of course, not everything is better, *tip: if you're interested, compare CPU & NUMA Affinity and the SMP topology capability of ESXi and KVM*)
@@ -167,7 +167,7 @@ About the OpenShift Architecture, as the diagram above shows:
 * Standard OpenShift control-plane architecture made out of three Master (with highly available ETCD)
 * Three virtualized Worker nodes to run internal services (e.g. console, oauth, monitoring etc) and anything non-performance intensive
 * One physical Worker node to run Pods with SR-IOV devices
-* The deployment is Bare-metal IPI (installer-provisioned infrastructure), but the VMware VMs are created manually 
+* The deployment is Bare-metal IPI (installer-provisioned infrastructure), but the VMware VMs are created manually
 * Being a bare-metal deployment, a LoadBalancer solution is required and for this, [MetalLB](https://metallb.universe.tf/#why) is the go-to choice
 * A Linux router is available to provide the typical network services such as DHCP, DNS, and NTP as well Internet access
 * A Linux NFS server is installed and, later on, the [Kubernetes SIG NFS Client](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) is deployed through `Helm`
@@ -259,7 +259,7 @@ firewall-cmd --reload
 ```
 #### 7.1.2 - RootCA
 It's quite handy having around a certification autority to later sign OCP traffic, Registry etc.
-Let's create a self-signed RootCA. I'm gonna do it on the router, the `CRT` needs to be copied and installed everywhere. 
+Let's create a self-signed RootCA. I'm gonna do it on the router, the `CRT` needs to be copied and installed everywhere.
 ```bash
 _DIR=/root/certs
 mkdir -p /root/certs
@@ -288,7 +288,7 @@ dnf install -y dnsmasq
 ```
 Let's move then to the configuration of NTP through Chrony
 
-* Allow Chrony to provide NTP to any host in the OCP Baremetal Network 
+* Allow Chrony to provide NTP to any host in the OCP Baremetal Network
 * If running, restart the service
 * If not configured to start at boot, enable and start it now
 
@@ -350,7 +350,7 @@ DHCP Time
 * Set the DHCP Range (from 10.0.11.2 to 10.0.11.17)
 * Define the default route to 10.0.11.30 (config `server` and more commonly `option 6`)
 * Define the DNS to 10.0.11.30 (`option 3`)
-* Define the NTP to 10.0.11.30 (`option 42`)  
+* Define the NTP to 10.0.11.30 (`option 42`)
 
 ```bash
 cat > /etc/dnsmasq.d/dhcp.dnsmasq << 'EOF'
@@ -418,7 +418,7 @@ Let's, first of all, install Python virtual environments
 
 ```bash
 dnf install -y ipmitool OpenIPMI python3-virtualenv python3-pyvmomi gcc make
-``` 
+```
 Then we can proceed with the installation of `virtualbmc-for-vsphere` from [@kurokobo](https://github.com/kurokobo) - Thanks again!
 
 ```bash
@@ -1148,7 +1148,7 @@ To prove that the setup is working, let's deploy a simple HelloWorld.
 oc new-project hello-k8s
 oc create -f https://raw.githubusercontent.com/paulbouwer/hello-kubernetes/master/yaml/hello-kubernetes.yaml
 ```
-Let's verify the Deployment, Pods, and Service 
+Let's verify the Deployment, Pods, and Service
 
 ```bash
 oc get deployment,pods,services
@@ -1171,7 +1171,7 @@ Connecting to the LoadBalancer External-IP, the HelloWorld should be available.
 
 <img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/basic_helloworld.png" width="75%" />
 
-Let's now ensure the Pods will be running on the `worker-cnf` node. First let's change the `tolerations` matching the `taints`. This can be done using the `patch` command over the `deployment` command or directly editing it  
+Let's now ensure the Pods will be running on the `worker-cnf` node. First let's change the `tolerations` matching the `taints`. This can be done using the `patch` command over the `deployment` command or directly editing it
 
 ```json
 oc patch deployment hello-kubernetes -p '{
@@ -1268,7 +1268,7 @@ metadata:
 spec:
   channel: "4.7"
   name: performance-addon-operator
-  source: redhat-operators 
+  source: redhat-operators
   sourceNamespace: openshift-marketplace
 ```
 
@@ -1319,7 +1319,7 @@ spec:
   realTimeKernel:
     enabled: false
   globallyDisableIrqLoadBalancing: true
-  numa:  
+  numa:
     topologyPolicy: "single-numa-node"
   cpu:
     reserved: 0,1,24,25
