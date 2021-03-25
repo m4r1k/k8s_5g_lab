@@ -58,7 +58,7 @@ To answer this question, you need to keep in mind the target workloads: Cloud-na
 ## 3 - About this document
 The primary aim for this document is deploying a 5G Telco Lab using mix of virtual and physical components. Several technical choices - combination of virtual/physical, NFS server, *limited* resources for the OpenShift Master, some virtual Worker nodes, etc - are just compromises to cope with the Lab resources. *As a reference, all this stuff runs at my home*.
 
-Everything that is built on top of the virtualization stack (in my case VMware vSphere) is explained in greater detail, but the vSphere environment itself is only lightly touched.
+Everything that is built on top of the virtualization stack (in my case VMware vSphere) is explained in greater detail, but the vSphere environment itself is only lightly touched and a reference Host Profile is also provided.
 
 **<div align="center"><span style="color:red">For the sake of explanation, limited automation is provided</span></div>**
 
@@ -106,6 +106,7 @@ Let's address the elephant in the room: why VMware vSphere? Well, there are a co
 The vSphere architecture is also very lean. Its usually as updated as possible, generally running the latest version plus the DellEMC Bundle.
 
 * ESXi 7.0 Update 2 (`17630552`)
+  * [The `Host Profile` is also available](https://github.com/m4r1k/k8s_5g_lab/tree/main/vsphere)
 * vCenter Server deployed through vCSA 7.0 Update 2 (`17694817`)
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
