@@ -111,9 +111,12 @@ The vSphere architecture is also very lean. Its usually as updated as possible, 
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
 * DRS's CPU over-commit ratio is not configured
 * A dedicated VMFS6 datastore (using a local NVME) of 2TB for this Lab (running off a Samsung 970 Evo Plus)
-* On the network side of the house
-	* VMware vSS for the default *VM Network* that has Internet access (Why vSS? Laziness :-P). Being a single host, we have here also the default VMkernel interface
-	* VMware vDS for all OCP networks
+* On the network side of the house, a single vDS called `DVS01`
+  * Virtual Distributed Switch version 7.0.2 (which finally adds support for LACP `fast`)
+  * A single upstream `lag1` with two Intel X710 ports, bonded together using LACP
+  * Several `Distributed Port Groups` for my House network (default `VM Network` on vSS), Batemetal and Provisioning network, etc
+
+<img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/vds.png"/>
 
 A quick note about the Distributed Port Groups security configuration:
 
