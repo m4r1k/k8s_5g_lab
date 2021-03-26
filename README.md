@@ -1108,7 +1108,7 @@ So we're gonna do the following:
 * Generate a `generic` secret key that the speak will later use
 
 ```bash
-_VER="v0.9.5"
+_VER="v0.9.6"
 
 oc create -f https://raw.githubusercontent.com/metallb/metallb/${_VER}/manifests/namespace.yaml
 
