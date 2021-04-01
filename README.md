@@ -119,11 +119,15 @@ The vSphere architecture is also very lean. Its usually as updated as possible, 
 
 <img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/vds.png"/>
 
-A quick note about the Distributed Port Groups security configuration:
+A quick note about the Distributed Port Groups Security configuration:
 
 * `Promiscuous mode` configured to `Accept` (default `Reject`)
 * `MAC address changes` configured to `Accept` (default `Reject`)
 * `Forged transmits` configured to `Accept` (default `Reject`)
+
+I personally found that the above configuration only works with ESXi 7 (tested with both U1 and U2) and the latest minors of ESXi 6.7u3 `17700523`. Early 6.7u3 builds have a different behavior of *learning* (or not actually) the MAC Address. When such behavior/bug happens, the Bootstrap VM running on top of the Provisioner node, won't have a fully functional networking stack.
+
+VMware seems not very transparent regarding these vDS capabilities (the entire [vSphere Networking library](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-35B40B0B-0C13-43B2-BC85-18C9C91BE2D4.html) doesn't mention anything about MAC Learning) and reading online ESXi 6.7 introduced a major change in how vDS natively [learn MAC Address](https://www.virtuallyghetto.com/2018/04/native-mac-learning-in-vsphere-6-7-removes-the-need-for-promiscuous-mode-for-nested-esxi.html).
 
 Regarding the VMs configuration:
 
