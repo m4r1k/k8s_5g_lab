@@ -115,7 +115,7 @@ The vSphere architecture is also very lean. Its usually as updated as possible, 
 * On the network side of the house, a single vDS called `DVS01`
   * Virtual Distributed Switch version 7.0.2 (which finally adds support for LACP `fast`)
   * A single upstream `lag1` with two Intel X710 ports, bonded together using LACP
-  * Several `Distributed Port Groups` for my House network (default `VM Network` on vSS), Batemetal and Provisioning network, etc
+  * Several `Distributed Port Groups` for my House network (replacing the default `VM Network` on vSS with `DPG178 - Home`), Batemetal and Provisioning network, etc
 
 <img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/vds.png"/>
 
@@ -180,17 +180,17 @@ About the OpenShift Architecture, as the diagram above shows:
 
 To reassume the VMs configuration
 
-VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*|vNIC2 *(ens192)*|Storage Device|Ethernet Device|
-----------:|:-:|:--:|:-----:|:--------:|:--------:|:--------------:|:--------------:|:------------:|:-------------:|
-Router     |19 |4   |16 GB  |20GiB     |n/a       |VM Network      |OCP Baremetal   |NVME          |VMXNET3        |
-Provisioner|19 |4   |16 GB  |70GiB     |n/a       |OCP Baremetal   |OCP Provisioning|NVME          |VMXNET3        |
-Master-0   |19 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Master-1   |19 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Master-2   |19 |4   |16 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |OCP Provisioning|OCP Baremetal   |NVME          |VMXNET3        |
-NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |OCP Baremetal   |n/a             |NVME          |VMXNET3        |
+VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*  |vNIC2 *(ens192)*  |Storage Device|Ethernet Device|
+----------:|:-:|:--:|:-----:|:--------:|:--------:|:----------------:|:----------------:|:------------:|:-------------:|
+Router     |19 |4   |16 GB  |20GiB     |n/a       |DPG178 - Home     |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+Provisioner|19 |4   |16 GB  |70GiB     |n/a       |DPG110 - Baremetal|DPG100 - PXE      |NVME          |VMXNET3v4      |
+Master-0   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+Master-1   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+Master-2   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
+NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |DPG110 - Baremetal|n/a               |NVME          |VMXNET3v4      |
 
 Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the lab in much greater detail.
 
@@ -293,7 +293,7 @@ dnf install -y dnsmasq
 ```
 Let's move then to the configuration of NTP through Chrony
 
-* Allow Chrony to provide NTP to any host in the OCP Baremetal Network
+* Allow Chrony to provide NTP to any host in the `DPG110 - Baremetal` Network
 * If running, restart the service
 * If not configured to start at boot, enable and start it now
 
@@ -386,7 +386,7 @@ nmcli connection modify ens160 ipv4.dns-search ocp4.bm.nfv.io
 ```
 Let's configure routing capability
 
-* Associate the `External` zone to `ens160` (connected to VM Network with Internet access)
+* Associate the `External` zone to `ens160` (connected to `DPG178 - Home` with Internet access)
 * Associate the `Internal` zone to `ens192` (connected to OSP Baremetal)
 * Allow Masquerade between Internal to External (effectively NAT)
 
@@ -548,7 +548,7 @@ reboot
 ### 7.4 - Provisioner
 Well, if the Router was kinda hard and the NFS Server definitely lighter, the Provisioner has more manual activities than what I'd personally expect from OCP. I guess that's due to the `version 1.0` effect. In short, we need to reconfigure the networking (adding two Linux bridge) and also install and configure Libvirt (and later download a *special* installer packer).
 
-Let's start creating the `provisioning` bridge connected to our `OCP Provisioning` network. In this lab `ens192` is our device. What we're going to do is the following
+Let's start creating the `provisioning` bridge connected to our `DPG100 - PXE` network. In this lab `ens192` is our device. What we're going to do is the following
 
 * Delete the `ens192` connection details in NetworkManager
 * Create the `provisioning` bridge and connect it to `ens192`
@@ -570,7 +570,7 @@ nmcli connection modify provisioning connection.autoconnect yes
 nmcli connection down provisioning
 nmcli connection up provisioning
 ```
-The second bridge to create is the `baremetal` connected to our `OCP Baremetal`. Our SSH session is going through this link. *Looks like NetworkManager doesn't support performing a group of atomic operation at once* (I may be wrong of course), so we're going to execute an entire block of NetworkManager commands in an uninterruptible manner through `nohup`. Same as before
+The second bridge to create is the `baremetal` connected to our `DPG110 - Baremetal`. Our SSH session is going through this link. *Looks like NetworkManager doesn't support performing a group of atomic operation at once* (I may be wrong of course), so we're going to execute an entire block of NetworkManager commands in an uninterruptible manner through `nohup`. Same as before
 
 * Delete the `ens160` connection details in NetworkManager
 * Create the `baremetal` bridge and connect it to `ens160`
