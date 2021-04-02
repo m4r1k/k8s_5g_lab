@@ -462,7 +462,7 @@ echo -n "vCenter Administrator Password: "
 read -s _PASSWORD
 echo
 
-_vCSACONNECTION="--viserver 192.168.178.11 --viserver-username administrator@vsphere.local --viserver-password ${_PASSWORD}"
+_vCSACONNECTION="--viserver 192.168.178.12 --viserver-username administrator@vsphere.local --viserver-password ${_PASSWORD}"
 
 source /root/vBMC/bin/activate
 
