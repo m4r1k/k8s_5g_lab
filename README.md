@@ -101,7 +101,7 @@ Software-wise, things are also very linear:
 Let's address the elephant in the room: why VMware vSphere? Well, there are a couple of reasons, but before that let me state loud and clear, everything achived in this document can absolutely be done on plain Linux KVM. VMware vSphere is my choise and doesn't have to be yours:
 
 * While OpenShift supports many on-premise platforms (OpenStack, oVirt, pure bare-metal, and vSphere), the power of an indeed Enterprise Virtualization Platform could play an essential role in how the lab evolves, and it could also act as a reference (for example, today real production on bare-metal has a minimum footprint of 7 nodes: 3x Master + 3x Infra + 1x Provisioner)
-* *In general*, VMware is just better at hardware virtualization and there might be some edge cases where it becomes instrumental. Last year my [OpenStack NFVi Lab moved to vSphere](https://github.com/m4r1k/nfvi_lab/commit/d7149a1) because I wanted to expose virtual NVME devices to my Ceph Storage nodes (of course, not everything is better, *tip: if you're interested, compare CPU & NUMA Affinity and the SMP topology capability of ESXi and KVM*)
+* *In general*, VMware is just better at hardware virtualization and there might be some edge cases where it becomes instrumental. Last year my [OpenStack NFVi Lab moved to vSphere](https://github.com/m4r1k/nfvi_lab/commit/d7149a1) because I wanted to expose virtual NVMe devices to my Ceph Storage nodes (of course, not everything is better, *tip: if you're interested, compare CPU & NUMA Affinity and the SMP topology capability of ESXi and KVM*)
 
 The vSphere architecture is also very lean. Its usually as updated as possible, generally running the latest version plus the DellEMC Bundle.
 
@@ -111,7 +111,7 @@ The vSphere architecture is also very lean. Its usually as updated as possible, 
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
 * DRS's CPU over-commit ratio is not configured
-* A Storage Cluster with SDRS enabled using two local NVME
+* A Storage Cluster with SDRS enabled using two local NVMe
   * Samsung 970 Evo Plus of 2TB
   * Samsung 970 Evo of 1TB
 * On the network side of the house, a single vDS called `DVS01`
@@ -137,8 +137,8 @@ Regarding the VMs configuration:
 * The VM Guest OS Profile is configured for RHEL8 (the firmware is set to `EFI` and `Secure Boot` is **disabled**). The OpenShift installer has only recently [gained the SecureBoot capability](https://github.com/openshift/installer/commit/39c6499), which will be *probably* available with OCP 4.8
 * `vNUMA` is disabled, exposing a single socket (aka equal number of `vCPU` and `Cores per socket`)
 * `I/O MMU` and `Hardware virtualization` (aka `Nested Virtualization`) are both enabled
-* VMXNET3 is the network para-virtualized driver for all interfaces. VMware has [known poor support for PXE](https://kb.vmware.com/s/article/59709). The result is a slower PXE boot phase which sometimes also fails (BTW, from this point of view KVM just works)
-* VMware NVMEv1.3 is the storage controller for all VMs (for who's asking about PVSCSI vs. NVME, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
+* VMware [VMXNET 3 v4](https://docs.vmware.com/en/vSphere/6.7/solutions/vSphere-6.7.2cd6d2a77980cc623caa6062f3c89362/GUID-C500585C0560D28B71180A40A4767C57.html) is the network para-virtualized driver for all interfaces. VMware has [known poor support for PXE](https://kb.vmware.com/s/article/59709). The result is a slower PXE boot phase which sometimes also fails (BTW, from this point of view KVM just works)
+* VMware [NVMe v1.3](https://www.codyhosterman.com/2018/04/whats-new-in-core-storage-in-vsphere-6-7-part-iv-nvme-controller-in-guest-unmap-support/) is the storage controller for all VMs (for who's asking about PVSCSI vs. NVMe, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
   * In the `install-config.yaml` the [Root device hints](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#root-device-hints_ipi-install-configuration-files) is specified referring to `deviceName: "/dev/nvme0n1"`
 ### 5.1 - Virtual Baseboard Management Controller
 The only real peculiarity in this environment is that OpenShift is deployed using IPI for Bare-metal on a mix vSphere and physical hardware. VMware doesn't have something like a virtual IPMI device; hence a vBMC solution is used.
@@ -184,15 +184,15 @@ To reassume the VMs configuration
 
 VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*  |vNIC2 *(ens192)*  |Storage Device|Ethernet Device|
 ----------:|:-:|:--:|:-----:|:--------:|:--------:|:----------------:|:----------------:|:------------:|:-------------:|
-Router     |19 |4   |16 GB  |20GiB     |n/a       |DPG178 - Home     |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-Provisioner|19 |4   |16 GB  |70GiB     |n/a       |DPG110 - Baremetal|DPG100 - PXE      |NVMEv1.3      |VMXNET3v4      |
-Master-0   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-Master-1   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-Master-2   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
-NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |DPG110 - Baremetal|n/a               |NVMEv1.3      |VMXNET3v4      |
+Router     |19 |4   |16 GB  |20GiB     |n/a       |DPG178 - Home     |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+Provisioner|19 |4   |16 GB  |70GiB     |n/a       |DPG110 - Baremetal|DPG100 - PXE      |NVMe v1.3      |VMXNET 3 v4    |
+Master-0   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+Master-1   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+Master-2   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMe v1.3      |VMXNET 3 v4    |
+NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |DPG110 - Baremetal|n/a               |NVMe v1.3      |VMXNET 3 v4    |
 
 Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the lab in much greater detail.
 
