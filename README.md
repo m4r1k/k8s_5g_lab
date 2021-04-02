@@ -111,7 +111,9 @@ The vSphere architecture is also very lean. Its usually as updated as possible, 
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
 * DRS's CPU over-commit ratio is not configured
-* A dedicated VMFS6 datastore (using a local NVME) of 2TB for this Lab (running off a Samsung 970 Evo Plus)
+* A Storage Cluster with SDRS enabled using two local NVME
+  * Samsung 970 Evo Plus of 2TB
+  * Samsung 970 Evo of 1TB
 * On the network side of the house, a single vDS called `DVS01`
   * Virtual Distributed Switch version 7.0.2 (which finally adds support for LACP `fast`)
   * A single upstream `lag1` with two Intel X710 ports, bonded together using LACP
@@ -136,7 +138,7 @@ Regarding the VMs configuration:
 * `vNUMA` is disabled, exposing a single socket (aka equal number of `vCPU` and `Cores per socket`)
 * `I/O MMU` and `Hardware virtualization` (aka `Nested Virtualization`) are both enabled
 * VMXNET3 is the network para-virtualized driver for all interfaces. VMware has [known poor support for PXE](https://kb.vmware.com/s/article/59709). The result is a slower PXE boot phase which sometimes also fails (BTW, from this point of view KVM just works)
-* VMware NVME is the storage controller for all VMs (for who's asking about PVSCSI vs. NVME, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
+* VMware NVMEv1.3 is the storage controller for all VMs (for who's asking about PVSCSI vs. NVME, [see the comparison](https://www.thomas-krenn.com/en/wiki/VMware_Performance_Comparison_SCSI_Controller_and_NVMe_Controller))
   * In the `install-config.yaml` the [Root device hints](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#root-device-hints_ipi-install-configuration-files) is specified referring to `deviceName: "/dev/nvme0n1"`
 ### 5.1 - Virtual Baseboard Management Controller
 The only real peculiarity in this environment is that OpenShift is deployed using IPI for Bare-metal on a mix vSphere and physical hardware. VMware doesn't have something like a virtual IPMI device; hence a vBMC solution is used.
@@ -182,15 +184,15 @@ To reassume the VMs configuration
 
 VM Name    |vHW|vCPU|vMemory|Root vDisk|Data vDisk|vNIC1 *(ens160)*  |vNIC2 *(ens192)*  |Storage Device|Ethernet Device|
 ----------:|:-:|:--:|:-----:|:--------:|:--------:|:----------------:|:----------------:|:------------:|:-------------:|
-Router     |19 |4   |16 GB  |20GiB     |n/a       |DPG178 - Home     |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-Provisioner|19 |4   |16 GB  |70GiB     |n/a       |DPG110 - Baremetal|DPG100 - PXE      |NVME          |VMXNET3v4      |
-Master-0   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-Master-1   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-Master-2   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVME          |VMXNET3v4      |
-NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |DPG110 - Baremetal|n/a               |NVME          |VMXNET3v4      |
+Router     |19 |4   |16 GB  |20GiB     |n/a       |DPG178 - Home     |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+Provisioner|19 |4   |16 GB  |70GiB     |n/a       |DPG110 - Baremetal|DPG100 - PXE      |NVMEv1.3      |VMXNET3v4      |
+Master-0   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+Master-1   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+Master-2   |19 |4   |16 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+Worker-0   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+Worker-1   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+Worker-2   |19 |8   |32 GB  |70GiB     |n/a       |DPG100 - PXE      |DPG110 - Baremetal|NVMEv1.3      |VMXNET3v4      |
+NFS Server |19 |2   |16 GB  |70GiB     |300GiB    |DPG110 - Baremetal|n/a               |NVMEv1.3      |VMXNET3v4      |
 
 Also available in Google Spreadsheet the [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing) of the lab in much greater detail.
 
