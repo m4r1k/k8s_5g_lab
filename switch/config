@@ -5,8 +5,6 @@ stack unit 1
   module 1 icx6610-24-port-management-module
   module 2 icx6610-qsfp-10-port-160g-module
   module 3 icx6610-8-port-10g-dual-mode-module
-  stack-trunk 1/2/1 to 1/2/2
-  stack-trunk 1/2/6 to 1/2/7
 !
 !
 !
