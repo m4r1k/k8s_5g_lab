@@ -261,6 +261,7 @@ ip dhcp-client disable
 ip dns server-address 1.1.1.1
 ip route 0.0.0.0/0 192.168.178.1
 !
+logging buffered 1000
 !
 !
 clock summer-time
