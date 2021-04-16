@@ -622,6 +622,7 @@ Let's finish the KNI user configuration. **Connect to the KNI user first**
 
 * Create an SSH Key (*optionally*, you can import your own)
 * Define the default Libvirt storage pool
+* Remove the default Libvirt network
 
 ```bash
 sudo su - kni
@@ -629,6 +630,8 @@ ssh-keygen -b 2048 -t rsa -f ~/.ssh/id_rsa -q -N ""
 sudo virsh pool-define-as --name default --type dir --target /var/lib/libvirt/images
 sudo virsh pool-start default
 sudo virsh pool-autostart default
+sudo virsh net-destroy default
+sudo virsh net-undefine default
 ```
 Lastly, let's reboot the system to also pick up the newer Kernel
 
