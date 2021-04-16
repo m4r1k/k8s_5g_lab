@@ -1155,12 +1155,16 @@ As usual `oc create -f <path/to/meltallb/config/yaml>` and the MetalLB configura
 To prove that the setup is working, let's deploy a simple HelloWorld.
 
 ```bash
-oc new-project hello-k8s
-oc create -f https://raw.githubusercontent.com/paulbouwer/hello-kubernetes/master/yaml/hello-kubernetes.yaml
+git clone https://github.com/paulbouwer/hello-kubernetes
+helm install --create-namespace \
+  --namespace hello-kubernetes \
+  hello-world \
+  ~/hello-kubernetes/deploy/helm/hello-kubernetes/
 ```
 Let's verify the Deployment, Pods, and Service
 
 ```bash
+oc project hello-kubernetes
 oc get deployment,pods,services
 ```
 
