@@ -1165,21 +1165,26 @@ Let's verify the Deployment, Pods, and Service
 
 ```bash
 oc project hello-kubernetes
+helm list --all
 oc get deployment,pods,services
 ```
 
 With my Baremetal network, I have the following output
 ```console
-NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/hello-kubernetes   3/3     3            3           15m
+$ helm list --all
+NAME       	NAMESPACE       	REVISION	UPDATED                                	STATUS  	CHART                 	APP VERSION
+hello-world	hello-kubernetes	1       	2021-04-16 15:32:11.344953691 +0000 UTC	deployed	hello-kubernetes-1.0.0	1.10
 
-NAME                                    READY   STATUS    RESTARTS   AGE
-pod/hello-kubernetes-767d49787b-blwvg   1/1     Running   0          15m
-pod/hello-kubernetes-767d49787b-jbld6   1/1     Running   0          15m
-pod/hello-kubernetes-767d49787b-nft9f   1/1     Running   0          15m
+$ oc get deployment,pods,services
+NAME                                           READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/hello-kubernetes-hello-world   2/2     2            2           5m13s
 
-NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
-service/hello-kubernetes   LoadBalancer   172.30.197.195   10.0.11.20    80:32035/TCP   15m
+NAME                                                READY   STATUS    RESTARTS   AGE
+pod/hello-kubernetes-hello-world-74dd85ddc4-4pvlm   1/1     Running   0          5m12s
+pod/hello-kubernetes-hello-world-74dd85ddc4-fblls   1/1     Running   0          5m12s
+
+NAME                                   TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+service/hello-kubernetes-hello-world   LoadBalancer   172.30.52.210   10.0.11.20    80:30960/TCP   5m13s
 ```
 Connecting to the LoadBalancer External-IP, the HelloWorld should be available.
 
