@@ -21,7 +21,7 @@ Even considering only 5G, orchestrating these massive applications without somet
   - [4 - Lab High-Level](#4---lab-high-level)
   - [5 - vSphere Architecture](#5---vsphere-architecture)
     - [5.1 - Virtual Baseboard Management Controller](#51---virtual-baseboard-management-controller)
-    - [5.2 How to get VMware Subscriptions](#52-how-to-get-vmware-subscriptions)
+    - [5.2 - How to get VMware Subscriptions](#52---how-to-get-vmware-subscriptions)
   - [6 - Red Hat OpenShift Architecture](#6---red-hat-openshift-architecture)
     - [6.1 - Performance Addon Operator aka PAO](#61---performance-addon-operator-aka-pao)
   - [7 - Deployment](#7---deployment)
@@ -149,7 +149,7 @@ The only real peculiarity in this environment is that OpenShift is deployed usin
 
 Besides Sushy, I personally tested both virtual BMC methods and they work very well. Moreover, for about a year now, the pure *python-virtualbmc plus libvirt* approach has been rock solid in my NFVi OpenStack Lab, but there is a caveat: while with *python-virtualbmc* the VM's boot order must be manually configured (PXE always first) [@kurokobo](https://github.com/kurokobo) [made a specific implementation](https://github.com/kurokobo/virtualbmc-for-vsphere/commit/2380859) to solve this problem effectively making *virtualbmc-for-vsphere* superior.
 
-### 5.2 How to get VMware Subscriptions
+### 5.2 - How to get VMware Subscriptions
 There are mainly two ways (*besides buying a complete subscription*)
 
 * [60-days VMware evaluation](https://www.vmware.com/try-vmware.html) most (all?) VMware products come with a trial of 60 days.
