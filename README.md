@@ -365,8 +365,8 @@ domain-needed
 bind-dynamic
 bogus-priv
 dhcp-range=10.0.11.2,10.0.11.17
-dhcp-option=3,10.0.11.30
-dhcp-option=42,10.0.11.30
+dhcp-option-force=3,10.0.11.30
+dhcp-option-force=42,10.0.11.30
 server=10.0.11.30
 
 dhcp-host=00:50:56:8e:56:31,openshift-master-0.ocp4.bm.nfv.io,10.0.11.2
