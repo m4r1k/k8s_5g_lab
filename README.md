@@ -34,13 +34,14 @@ Even considering only 5G, orchestrating these massive applications without somet
     - [7.4 - Provisioner](#74---provisioner)
     - [7.5 - OpenShift deployment](#75---openshift-deployment)
     - [7.6 - Adding Physical OpenShift Nodes](#76---adding-physical-openshift-nodes)
-    - [7.7 - NFS Storage Class and OCP internal Registry](#77---nfs-storage-class-and-ocp-internal-registry)
-    - [7.8 - Service Type LoadBalancer](#78---service-type-loadbalancer)
-    - [7.9 - Basic HelloWorld](#79---basic-helloworld)
-    - [7.10 - PAO](#710---pao)
-    - [7.11 - Kernel Modules](#711---kernel-modules)
-    - [7.12 - NMState](#712---nmstate)
-    - [7.13 - SR-IOV](#713---sr-iov)
+    - [7.7 - Verify Jumbo Frame](#77---verify-jumbo-frame)
+    - [7.8 - NFS Storage Class and OCP internal Registry](#78---nfs-storage-class-and-ocp-internal-registry)
+    - [7.9 - Service Type LoadBalancer](#79---service-type-loadbalancer)
+    - [7.10 - Basic HelloWorld](#710---basic-helloworld)
+    - [7.11 - PAO](#711---pao)
+    - [7.12 - Kernel Modules](#712---kernel-modules)
+    - [7.13 - NMState](#713---nmstate)
+    - [7.14 - SR-IOV](#714---sr-iov)
 
 ## 2 - 5G is Containers
 From [Ericsson](https://www.ericsson.com/en/cloud-native) to [Nokia](https://www.nokia.com/blog/containers-and-the-evolving-5g-cloud-native-journey/), from [Red Hat](https://www.redhat.com/en/blog/5g-core-adoption-open-way-red-hat-openshift?source=bloglisting&page=1&search=5g+openshift) to [VMware](https://www.fiercewireless.com/tech/samsung-vmware-team-cloud-native-5g-functions), and with leading examples like [Verizon](https://www.fiercewireless.com/tech/verizon-readies-initial-shift-to-5g-standalone-core-after-successful-trial) and [Rakuten](https://www.fiercewireless.com/5g/rakuten-s-5g-network-will-be-built-containers), there is absolutely no douth that 5G means containers, and as everybody knows, containers mean Kubernetes. There are many debates whether the more significant chunk of the final architecture would be virtualized or natively running on bare-metal (there are still some cases where hardware virtualization is a fundamental need) but, in all instances, Kubernetes is the dominant and de-facto standard to build applications.
@@ -118,6 +119,7 @@ The vSphere architecture is also very lean. Its usually as updated as possible, 
   * Virtual Distributed Switch version 7.0.2 (which finally adds support for LACP `fast`)
   * A single upstream `lag1` with two Intel X710 ports, bonded together using LACP
   * Several `Distributed Port Groups` for my House network (replacing the default `VM Network` on vSS with `DPG178 - Home`), Batemetal and Provisioning network, etc
+  * MTU set to 9000 to allow Jumbo Frames 
 
 <img src="https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/vds.png"/>
 
@@ -178,7 +180,8 @@ About the OpenShift Architecture, as the diagram above shows:
 * Being a bare-metal deployment, a LoadBalancer solution is required and for this, [MetalLB](https://metallb.universe.tf/#why) is the go-to choice
 * A Linux router is available to provide the typical network services such as DHCP, DNS, and NTP as well Internet access
 * A Linux NFS server is installed and, later on, the [Kubernetes SIG NFS Client](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) is deployed through `Helm`
-* Lastly, `OVNKubernetes` is the choosen CNI Network provider. OVN has some [serious advantages](https://www.openvswitch.org/support/ovscon2019/day1/1133-OVNForK8sNetworkFunctions.pdf) in [regards to networking](https://youtu.be/pD9dkPDr_jU) and using `OpenShiftSDN` won't really make sense for Telco use-cases.
+* `OVNKubernetes` is the choosen CNI Network provider. OVN has some [serious advantages](https://www.openvswitch.org/support/ovscon2019/day1/1133-OVNForK8sNetworkFunctions.pdf) in [regards to networking](https://youtu.be/pD9dkPDr_jU) and using `OpenShiftSDN` won't really make sense for Telco use-cases.
+* The entire platform is configured with Jumbo Frames. This grately helps any communications, especially [internal pod-to-pod](https://docs.openshift.com/container-platform/4.7/scalability_and_performance/optimizing-networking.html) ones and storage.
 
 To reassume the VMs configuration
 
@@ -358,6 +361,8 @@ DHCP Time
 * Define the default route to 10.0.11.30 (config `server` and more commonly `option 6`)
 * Define the DNS to 10.0.11.30 (`option 3`)
 * Define the NTP to 10.0.11.30 (`option 42`)
+* Define the MTU size to 9000 (`option 26`)
+* Instruct DNSMasq always to send the DHCP options even when not requested (`dhcp-option-force`)
 
 ```bash
 cat > /etc/dnsmasq.d/dhcp.dnsmasq << 'EOF'
@@ -367,6 +372,7 @@ bogus-priv
 dhcp-range=10.0.11.2,10.0.11.17
 dhcp-option-force=3,10.0.11.30
 dhcp-option-force=42,10.0.11.30
+dhcp-option-force=26,9000
 server=10.0.11.30
 
 dhcp-host=00:50:56:8e:56:31,openshift-master-0.ocp4.bm.nfv.io,10.0.11.2
@@ -509,8 +515,9 @@ chmod +x /root/vBMC.sh
 ```
 
 ### 7.3 - NFS Server
-This time around, the number of steps is way less. Let's install the NFS packages
+This time around, the number of steps is way less. Make sure the interface has an MTU 9000 to allow Jumbo Frames also for NFS.
 
+Let's install the NFS packages
 ```bash
 dnf install nfs-utils nfs4-acl-tools sysstat -y
 ```
@@ -520,7 +527,7 @@ Let's enable the NFS Server
 systemctl enable --now nfs-server
 ```
 
-Let's make NFS fully accessible, restart the NFS client services and export it
+Let's make NFS is fully accessible, restart the NFS client services and export it
 
 ```bash
 chown -R nobody: /nfs
@@ -557,6 +564,7 @@ Let's start creating the `provisioning` bridge connected to our `DPG100 - PXE` n
 * Re-add its own Network settings
 * IPv6 only link-local
 * Disable STP (otherwise the connection takes 30 seconds to establish)
+* Jumbo Frames
 
 ```bash
 nmcli connection down ens192
@@ -579,6 +587,7 @@ The second bridge to create is the `baremetal` connected to our `DPG110 - Bareme
 * Re-add its own Network settings
 * IPv6 only link-local
 * Disable STP (otherwise the connection takes 30 seconds to establish)
+* Jumbo Frames
 
 ```bash
 nohup bash -c "
@@ -1021,7 +1030,60 @@ This is how it looks once all done
 
 <img src="https://github.com/m4r1k/k8s_5g_lab/raw/main/media/ocp_nodes.png" width="75%" />
 
-### 7.7 - NFS Storage Class and OCP internal Registry
+### 7.7 - Verify Jumbo Frame
+
+At this point we should have an OCP cluster up and running and is the perfect time to verify the platform is fully Jumbo Frames.
+First, let's check the `Network` CRD
+```console
+$ oc describe network cluster
+Name:         cluster
+Namespace:
+Labels:       <none>
+Annotations:  <none>
+API Version:  config.openshift.io/v1
+Kind:         Network
+Metadata:
+  Creation Timestamp:  2021-04-17T07:21:41Z
+  Generation:          2
+  Managed Fields:
+<SNIP>
+Spec:
+  Cluster Network:
+    Cidr:         10.128.0.0/14
+    Host Prefix:  23
+  External IP:
+    Policy:
+  Network Type:  OVNKubernetes
+  Service Network:
+    172.30.0.0/16
+Status:
+  Cluster Network:
+    Cidr:               10.128.0.0/14
+    Host Prefix:        23
+  Cluster Network MTU:  8900
+  Network Type:         OVNKubernetes
+  Service Network:
+    172.30.0.0/16
+Events:  <none>
+```
+
+Then let's check a master node and our CNF worker node status
+```console
+$ oc debug node/openshift-master-0 -- chroot /host ip link show ens192
+3: ens192: <BROADCAST,MULTICAST,ALLMULTI,UP,LOWER_UP> mtu 9000 qdisc mq master ovs-system state UP mode DEFAULT group default qlen 1000
+    link/ether 00:50:56:8e:56:31 brd ff:ff:ff:ff:ff:ff
+
+$ oc debug node/openshift-master-0 -- chroot /host ovs-vsctl get interface br-ex mtu
+9000
+
+$ oc debug node/openshift-worker-cnf-1 -- chroot /host ip link show eno2
+3: eno2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9000 qdisc mq master ovs-system state UP mode DEFAULT group default qlen 1000
+    link/ether ec:f4:bb:dd:96:29 brd ff:ff:ff:ff:ff:ff
+
+$ oc debug node/openshift-worker-cnf-1 -- chroot /host ovs-vsctl get interface br-ex mtu
+9000
+```
+### 7.8 - NFS Storage Class and OCP internal Registry
 Next step is to lavarage the RHEL NFS Server for persistent storage. Luckly this is uber easy (don't forget to [install the `helm` CLI](https://mirror.openshift.com/pub/openshift-v4/clients/helm/latest)). See the official documentation for [all the supported options by the Helm Chart](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/charts/nfs-subdir-external-provisioner/README.md) (such as `storageClass.accessModes`, `nfs.mountOptions`, `storageClass.reclaimPolicy`, etc)
 
 * Create the `nfs-external-provisioner` namespace
@@ -1107,7 +1169,7 @@ sudo podman image push ${_HOST}/default/alpine:latest --tls-verify=false
 sudo podman search ${_HOST}/ --tls-verify=false
 ```
 
-### 7.8 - Service Type LoadBalancer
+### 7.9 - Service Type LoadBalancer
 Something currently missing in OpenShift Baremetal is a Service type LoadBalancer. We're going to use MetalLB here. In this initial release, the focus is L2 and BGP will follow later. [On Medium you can find a simple yet effective description of all K8s service types](https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0).
 
 So we're gonna do the following:
@@ -1151,7 +1213,7 @@ data:
 
 As usual `oc create -f <path/to/meltallb/config/yaml>` and the MetalLB configuration is done.
 
-### 7.9 - Basic HelloWorld
+### 7.10 - Basic HelloWorld
 To prove that the setup is working, let's deploy a simple HelloWorld.
 
 ```bash
@@ -1248,7 +1310,7 @@ hello-kubernetes-5cb945f5f5-8g74v   1/1     Running   0          4m24s   10.130.
 hello-kubernetes-5cb945f5f5-94vqx   1/1     Running   0          4m27s   10.130.2.8   openshift-worker-cnf-1   <none>           <none>
 hello-kubernetes-5cb945f5f5-t52hc   1/1     Running   0          4m31s   10.130.2.7   openshift-worker-cnf-1   <none>           <none>
 ```
-### 7.10 - PAO
+### 7.11 - PAO
 Reaching this point wasn't that easy :-) Assuming everything went well, now our OCP cluster is deployed with at least one physical worker node and we can start taking care of the PAO which is fundamental for any deterministic workloads
 
 To deploy PAO effectively we need to do three things:
@@ -1624,7 +1686,7 @@ Mar 05 16:58:47 localhost.localdomain systemd[1]: Failed to start Hugepages-1048
 Mem:           62Gi        45Gi        16Gi       2.0Mi       257Mi        16Gi
 Swap:            0B          0B          0B
 ```
-### 7.11 - Kernel Modules
+### 7.12 - Kernel Modules
 Next let's load a few kernel modules:
 * `sctp` which stand for Stream Control Transmission Protocol is actually [heavily](https://www.etsi.org/deliver/etsi_ts/138400_138499/138462/15.00.00_60/ts_138462v150000p.pdf) used in [5G for signaling](https://www.etsi.org/deliver/etsi_ts/138400_138499/138412/15.00.00_60/ts_138412v150000p.pdf)
 * `xt_u32` to allow dynamic inspection of message payloads. See [the upstream commit](https://github.com/torvalds/linux/commit/1b50b8a) for more information
@@ -1694,7 +1756,7 @@ inet_diag              24576  1 sctp_diag
 sctp                  405504  3 sctp_diag
 libcrc32c              16384  5 nf_conntrack,nf_nat,openvswitch,xfs,sctp
 ```
-### 7.12 - NMState
+### 7.13 - NMState
 From OCP 4.7 we have [NMState Operator](https://docs.openshift.com/container-platform/4.7/networking/k8s_nmstate/k8s-nmstate-about-the-k8s-nmstate-operator.html) which is instrumental to configure the network interfaces (as the name suggests, is NetworkManager driven).
 
 If you are on an older/different version, you can always consume [upstream bits](https://github.com/nmstate/kubernetes-nmstate/releases) (don't forget to deploy the SCC too).
@@ -1861,7 +1923,7 @@ status:
       lldp:
         enabled: false
       mac-address: EC:F4:BB:DD:96:29
-      mtu: 1500
+      mtu: 9000
       name: br-ex
       state: up
       type: ovs-interface
@@ -1950,7 +2012,7 @@ status:
       lldp:
         enabled: false
       mac-address: EC:F4:BB:DD:96:29
-      mtu: 1500
+      mtu: 9000
       name: eno2
       state: up
       type: ethernet
@@ -2326,7 +2388,7 @@ status:
 
 Well, NMState configuration is honestly single-liner. On the other hand, SR-IOV, is a bit more complex because it requires you to know the hardware. Let's get into it.
 
-### 7.13 - SR-IOV
+### 7.14 - SR-IOV
 To have SR-IOV capability in the platform, we will follow a similar approach as we did for PAO and NMState. OpenShift comes with everything:
  - [SR-IOV Network Operator](https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html)
  - Multus which is [pre-installed and pre-configured out of the box](https://docs.openshift.com/container-platform/4.7/networking/multiple_networks/understanding-multiple-networks.html). Red Hat wrote an amazing ["Demystifying Multus" blog post](https://www.openshift.com/blog/demystifying-multus) explaining all bits and pieces
