@@ -256,7 +256,7 @@ Once concluded, several packages are installed (the list is self-explanatory)
 
 ```bash
 dnf install -y bash-completion bind-utils cockpit cockpit-storaged \
-               chrony git httpd-tools jq lsof open-vm-tools \
+               chrony git jq lsof open-vm-tools \
                podman-docker tcpdump tmux vim
 
 dnf module -y install container-tools
@@ -877,7 +877,10 @@ INFO Time elapsed: 1h8m58s
 Once the deployment is over, we can proceed with the first step: the authentication. To make things simple, we will rely upon `HTPasswd`. Single `admin` user with password `admin`, later this will give the flexibility to add additional users with fewer privileges.
 
 ```bash
-htpasswd -c -b -B /home/kni/htpasswd admin admin
+podman run \
+  --rm \
+  --entrypoint htpasswd \
+  docker.io/httpd:2.4 -Bbn admin admin > /home/kni/htpasswd
 ```
 Let's then create a secret with the admin's user credential
 
