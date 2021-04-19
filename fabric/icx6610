@@ -1,5 +1,5 @@
 !
-ver 08.0.30tT7f3
+ver 08.0.30uT7f3
 !
 stack unit 1
   module 1 icx6610-24-port-management-module
@@ -9,9 +9,16 @@ stack unit 1
 !
 !
 lag ESXi dynamic id 30
- ports ethernet 1/3/7 to 1/3/8
- primary-port 1/3/7
- force-up ethernet 1/3/7
+ ports ethernet 1/3/1 to 1/3/2
+ primary-port 1/3/1
+ force-up ethernet 1/3/1
+ lacp-timeout short
+ deploy
+!
+lag FTW dynamic id 40
+ ports ethernet 1/2/2 to 1/2/5
+ primary-port 1/2/2
+ force-up ethernet 1/2/2
  lacp-timeout short
  deploy
 !
@@ -33,222 +40,20 @@ lag R730 dynamic id 20
 vlan 1 name DEFAULT-VLAN by port
  loop-detection
 !
-vlan 100 name provisioning by port
+vlan 100 name pxe by port
  tagged ethe 1/1/11 to 1/1/24 ethe 1/3/7 to 1/3/8
  router-interface ve 100
+ loop-detection
 !
-vlan 110 name baremetal by port
+vlan 110 name internal by port
  tagged ethe 1/1/13 to 1/1/24 ethe 1/3/7 to 1/3/8
  router-interface ve 110
+ loop-detection
 !
 vlan 178 name external by port
- tagged ethe 1/3/7 to 1/3/8
+ tagged ethe 1/1/15 to 1/1/20 ethe 1/2/2 to 1/2/5 ethe 1/3/1 to 1/3/2
  untagged ethe 1/1/1 to 1/1/10
  router-interface ve 178
- loop-detection
-!
-vlan 2000 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2001 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2002 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2003 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2004 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2005 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2006 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2007 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2008 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2009 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2010 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2011 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2012 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2013 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2014 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2015 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2016 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2017 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2018 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2019 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2020 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2021 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2022 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2023 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2024 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2025 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2026 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2027 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2028 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2029 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2030 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2031 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2032 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2033 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2034 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2035 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2036 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2037 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2038 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2039 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2040 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2041 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2042 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2043 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2044 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2045 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2046 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2047 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2048 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2049 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
- loop-detection
-!
-vlan 2050 name provider by port
- tagged ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
  loop-detection
 !
 !
@@ -269,6 +74,7 @@ clock timezone gmt GMT+01
 !
 !
 ntp
+ disable serve
  server 95.211.160.148
  server 213.109.127.82
  server 82.161.139.11
@@ -300,10 +106,10 @@ interface ethernet 1/1/15
 interface ethernet 1/1/16
  dual-mode  110
 !
-interface ethernet 1/3/1
- speed-duplex 10G-full
+interface ethernet 1/2/2
+ dual-mode  178
 !
-interface ethernet 1/3/2
+interface ethernet 1/3/1
  speed-duplex 10G-full
 !
 interface ethernet 1/3/3
@@ -319,6 +125,9 @@ interface ethernet 1/3/6
  speed-duplex 10G-full
 !
 interface ethernet 1/3/7
+ speed-duplex 10G-full
+!
+interface ethernet 1/3/8
  speed-duplex 10G-full
 !
 interface ve 100
