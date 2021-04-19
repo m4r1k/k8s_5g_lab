@@ -17,6 +17,9 @@ lag Diablo dynamic id 40
 !
 vlan 1 name DEFAULT-VLAN by port
 !
+vlan 120 name overlay by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6 lag 40
+!
 vlan 178 name external by port
  untagged lag 40
  router-interface ve 178

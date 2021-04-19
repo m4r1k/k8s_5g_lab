@@ -41,13 +41,28 @@ vlan 1 name DEFAULT-VLAN by port
  loop-detection
 !
 vlan 100 name pxe by port
- tagged ethe 1/1/11 to 1/1/24 ethe 1/3/7 to 1/3/8
+ tagged ethe 1/1/11 to 1/1/24 ethe 1/3/1 to 1/3/8
  router-interface ve 100
  loop-detection
 !
 vlan 110 name internal by port
- tagged ethe 1/1/13 to 1/1/24 ethe 1/3/7 to 1/3/8
+ tagged ethe 1/1/13 to 1/1/24 ethe 1/3/1 to 1/3/8
  router-interface ve 110
+ loop-detection
+!
+vlan 120 name overlay by port
+ tagged ethe 1/1/13 to 1/1/24 ethe 1/2/1 to 1/2/10 ethe 1/3/1 to 1/3/8
+ router-interface ve 120
+ loop-detection
+!
+vlan 130 name storage by port
+ tagged ethe 1/1/13 to 1/1/24 ethe 1/3/1 to 1/3/8
+ router-interface ve 130
+ loop-detection
+!
+vlan 140 name storagemgmt by port
+ tagged ethe 1/1/13 to 1/1/24 ethe 1/3/1 to 1/3/8
+ router-interface ve 140
  loop-detection
 !
 vlan 178 name external by port
@@ -135,6 +150,15 @@ interface ve 100
 !
 interface ve 110
  ip address 10.0.11.1 255.255.255.224
+!
+interface ve 120
+ ip address 10.0.12.1 255.255.255.224
+!
+interface ve 130
+ ip address 10.0.13.1 255.255.255.224
+!
+interface ve 140
+ ip address 10.0.14.1 255.255.255.224
 !
 interface ve 178
  ip address 192.168.178.9 255.255.255.0
