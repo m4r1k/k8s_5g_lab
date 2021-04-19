@@ -1,0 +1,128 @@
+!
+ver 08.0.95caT203
+!
+stack unit 1
+  module 1 icx7750-48-xgf-port-management-module
+  module 2 icx7750-qsfp-6port-qsfp-240g-module
+!
+!
+!
+!
+!
+lag Diablo dynamic id 40
+ lacp-timeout short
+ ports ethe 1/1/1 to 1/1/4
+ force-up ethernet 1/1/1
+!
+!
+vlan 1 name DEFAULT-VLAN by port
+!
+vlan 178 name external by port
+ untagged lag 40
+ router-interface ve 178
+!
+!
+!
+!
+vlan 2000 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2001 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2002 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2003 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2004 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2005 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2006 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2007 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2008 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2009 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+vlan 2010 by port
+ tagged ethe 1/1/5 to 1/1/48 ethe 1/2/1 ethe 1/2/2 ethe 1/2/3 ethe 1/2/4 ethe 1/2/5 ethe 1/2/6
+ loop-detection
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+jumbo
+hostname FTW
+ip dns server-address 1.1.1.1
+ip route 0.0.0.0/0 192.168.178.1
+!
+!
+!
+!
+!
+!
+!
+ntp
+ disable serve
+ server pool.ntp.org
+ server time.google.com
+!
+!
+!
+!
+manager registrar
+!
+manager port-list 987
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface ve 178
+ ip address 192.168.178.10 255.255.255.0
+!
+!
+!
+!
+!
+!
+!
+!
+!
+ip ssh  permit-empty-passwd yes
+!
+!
+!
+!
+!
+end
