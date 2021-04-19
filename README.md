@@ -76,12 +76,17 @@ In the near future the following topics will also be covered
 ## 4 - Lab High-Level
 ![](https://raw.githubusercontent.com/m4r1k/k8s_5g_lab/main/media/lab_drawing.png)
 
-The lab is quite linear. Fundamentally there are three PowerEdge Server and a Brocade Fabric:
+The lab is quite linear. Fundamentally there are three PowerEdge Server and a Brocade Fabric made of two ICX Switch:
 
-* A single Brocade ICX 6610 as Network Fabric for 1/10/40Gbps connections
-	* 1Gbps on copper
-	* 10 and 40Gbps on DAC
-	* The ICX will also act as a BGP router for MetalLB
+* A management Brocade ICX 6610 mainly for 1Gbps
+	* 1Gbps on copper for all PXE/Baremetal interfaces
+    * Still 1Gbps on copper for the local home connection
+	* 10Gbps on DAC for the ESXi node
+	* The ICX 6610 runs the latest FastIron 08.0.30u using the routing firmware
+* A core Brocade ICX 7750 mainly for 10Gbps and 40Gbps
+    * 10Gbps on DAC for all the physical interfaces (X520s, XXV710s, E810, CX5s etc)
+    * The ICX 7750 run the latest FastIron 08.0.95ca using the routing firmware
+    * The 7750 also acts as a BGP router for MetalLB
 * For the server hardware, three PowerEdge server G13 from Dell-EMC
 	* The ESXi node is an R630 with 2x Xeon E5-2673 v4 (40 cores/80 threads) and 256GB of memory
 	* The physical OCP Worker node is also an R630 with 2x Xeon E5-2678 v3 (24 cores/48 threads) and 64GB of memory
@@ -89,7 +94,8 @@ The lab is quite linear. Fundamentally there are three PowerEdge Server and a Br
 
 More information about the hardware physical layout:
 * Lab [Low-Level Design](https://docs.google.com/spreadsheets/d/1Pyq2jnS4-T_WjBzWAP6GJyQLLqqhAeh5xg40jMQVHAs/edit?usp=sharing)
-* Brocade Fabric ICX [config](https://github.com/m4r1k/k8s_5g_lab/tree/main/switch)
+* Brocade ICX 6610 [config](https://github.com/m4r1k/k8s_5g_lab/blob/main/fabric/icx6610)
+* Brocade ICX 7750 [config](https://github.com/m4r1k/k8s_5g_lab/blob/main/fabric/icx7750)
 
 Software-wise, things are also very linear:
 * As the generic OS to provide all sort of functions (Routing, NAT, DHCP, DNS, NTP etc): CentOS Stream 8
