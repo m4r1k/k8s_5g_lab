@@ -68,7 +68,6 @@ In the near future the following topics will also be covered
 
   - FD.IO VPP App
   - Use an external CA for the entire platform
-  - Local *cache* (OCI Registry + RHCOS Images)
   - MetalLB BGP
   - Contour
   - CNV
@@ -112,9 +111,9 @@ Let's address the elephant in the room: why VMware vSphere? Well, there are a co
 
 The vSphere architecture is also very lean. Its usually as updated as possible, generally running the latest version plus the DellEMC Bundle.
 
-* ESXi 7.0 Update 2 (`17630552`)
+* ESXi 7.0 Update 2a (`17867351`)
   * [The `Host Profile` is also available](https://github.com/m4r1k/k8s_5g_lab/tree/main/vsphere)
-* vCenter Server deployed through vCSA 7.0 Update 2 (`17694817`)
+* vCenter Server deployed through vCSA 7.0 Update 2a (`17920168`)
 * The vSphere topology has a single DC (`NFVi`) and a single cluster (`Cluster`)
 * DRS in the cluster is enabled (but having a single ESXi, it won't make any migration)
 * DRS's CPU over-commit ratio is not configured
