@@ -268,6 +268,15 @@ Run the Open VM-Tools at boot
 ```bash
 systemctl enable --now vmtoolsd vgauthd
 ```
+
+Being this CentOS 8 Stream we already have available [Podman 3.0 which supports the Docker REST API](https://www.redhat.com/sysadmin/podman-docker-compose) so let's start it and also install docker-compose
+```bash
+systemctl enable --now podman.socket
+curl -L "https://github.com/docker/compose/releases/download/1.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+```
+
 Finally run the RHEL Cockpit web interface
 
 ```bash
@@ -299,21 +308,65 @@ cp /root/ca.crt /etc/pki/ca-trust/source/anchors/
 update-ca-trust extract
 ```
 ### 7.2 - Router
-First off, let's install DNSMasq. Being an OpenStack guy, DNSMasq feels home (back in my old public-cloud days, I remember experiencing a DoS caused by the `log-queries` facility when malicious users generate many 1000s of DNS queries per second)
+First off, let's deploy DNSMasq. Being originally an OpenStack guy, DNSMasq feels home (back in my old public-cloud days, I remember experiencing a DoS caused by the `log-queries` facility when malicious users generate many 1000s of DNS queries per second)
 
-```bash
-dnf install -y dnsmasq
+Instead of installing whatever CentOS Stream provides, let's run it inside a container. Follows you can find the Dockerfile. It's really simple and does the following
+ * The base image is Alpine Linux 3.13
+ * Takes latest DNSMasq available (2.85)
+ * Enable DNSMasq and ignore the local `resolv.conf`
+
+```Dockerfile
+FROM alpine:3.13
+LABEL maintainer="federico.iezzi@gmail.com"
+
+# fetch DNSMasq
+# https://git.alpinelinux.org/aports/tree/main/dnsmasq/APKBUILD?h=3.13-stable
+RUN apk update \
+        && apk --no-cache add dnsmasq=2.85-r2
+
+#configure dnsmasq
+RUN mkdir -p /etc/default/
+RUN printf "ENABLED=1\nIGNORE_RESOLVCONF=yes" > /etc/default/dnsmasq
+
+#run it
+ENTRYPOINT ["dnsmasq","--no-daemon"]
 ```
-Let's move then to the configuration of NTP through Chrony
 
-* Allow Chrony to provide NTP to any host in the `DPG110 - Baremetal` Network
-* If running, restart the service
-* If not configured to start at boot, enable and start it now
+And also here the docker-compose file to run our DNSMasq container. It does the following:
+ * The container uses Host network
+ * The configuration file are under `/opt/dnsmasq/`
+ * `journald` logging driver (running `journalctl -f CONTAINER_NAME=dnsmasq` you will see all the logs)
 
+```yaml
+version: '3.8'
+services:
+    dnsmasq:
+        network_mode: host
+        cap_add:
+            - NET_ADMIN
+        volumes:
+            - '/opt/dnsmasq/dnsmasq.d:/etc/dnsmasq.d:Z'
+            - '/opt/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf:Z'
+            - '/opt/dnsmasq/hosts.dnsmasq:/etc/hosts.dnsmasq:Z'
+            - '/opt/dnsmasq/resolv.dnsmasq:/etc/resolv.dnsmasq:Z'
+        dns:
+            - 1.1.1.1
+            - 8.8.8.8
+        logging:
+            driver: journald
+        restart: unless-stopped
+        image: dnsmasq:2.85
+        container_name: dnsmasq
+```
+
+To build the image, simply run `podman image build --tag dnsmasq:2.85 .` in the directory where the `Dockerfile` is available
+
+Let's create our directory to store all DNSMasq files and also the generic config
 ```bash
-echo "allow 10.0.11.0/27" | tee -a /etc/chrony.conf
-systemctl is-active chronyd && systemctl restart chronyd
-systemctl is-enabled chronyd || systemctl enable --now chronyd
+mkdir -p /opt/dnsmasq/dnsmasq.d
+cat > /opt/dnsmasq/dnsmasq.conf << 'EOF'
+conf-dir=/etc/dnsmasq.d
+EOF
 ```
 
 Before actually doing the DNS configuration, if you come across some DNS issues, I strongly suggest reading the nothing less than amazing @rcarrata [DNS deep-dive](https://rcarrata.com/openshift/dns-deep-dive-in-openshift/). Additionally, also Red Hat has a nice [DNS Troubleshooting guide](https://access.redhat.com/solutions/3804501).
@@ -325,7 +378,7 @@ Now on the DNS configuration:
 * If not configured to start at boot, enable it and start it now
 
 ```bash
-cat > /etc/hosts.dnsmasq << 'EOF'
+cat > /opt/dnsmasq/hosts.dnsmasq << 'EOF'
 10.0.11.1  diablo diablo.ocp4.bm.nfv.io
 10.0.11.2  openshift-master-0 openshift-master-0.ocp4.bm.nfv.io
 10.0.11.3  openshift-master-1 openshift-master-1.ocp4.bm.nfv.io
@@ -340,12 +393,12 @@ cat > /etc/hosts.dnsmasq << 'EOF'
 10.0.11.30 router router.ocp4.bm.nfv.io
 EOF
 
-cat > /etc/resolv.dnsmasq << 'EOF'
+cat > /opt/dnsmasq/resolv.dnsmasq << 'EOF'
 nameserver 1.1.1.1
 nameserver 8.8.8.8
 EOF
 
-cat > /etc/dnsmasq.d/dns.dnsmasq << 'EOF'
+cat > /opt/dnsmasq/dnsmasq.d/dns.dnsmasq << 'EOF'
 domain-needed
 bind-dynamic
 bogus-priv
@@ -359,9 +412,6 @@ expand-hosts
 cache-size=500
 address=/.apps.ocp4.bm.nfv.io/10.0.11.19
 EOF
-
-systemctl is-active dnsmasq && systemctl restart dnsmasq
-systemctl is-enabled dnsmasq || systemctl enable --now dnsmasq
 ```
 DHCP Time
 
@@ -373,7 +423,7 @@ DHCP Time
 * Instruct DNSMasq always to send the DHCP options even when not requested (`dhcp-option-force`)
 
 ```bash
-cat > /etc/dnsmasq.d/dhcp.dnsmasq << 'EOF'
+cat > /opt/dnsmasq/dnsmasq.d/dhcp.dnsmasq << 'EOF'
 domain-needed
 bind-dynamic
 bogus-priv
@@ -391,15 +441,39 @@ dhcp-host=00:50:56:8e:c9:8e,openshift-worker-1.ocp4.bm.nfv.io,10.0.11.6
 dhcp-host=00:50:56:8e:f2:26,openshift-worker-2.ocp4.bm.nfv.io,10.0.11.7
 dhcp-host=ec:f4:bb:dd:96:29,openshift-worker-cnf-1.ocp4.bm.nfv.io,10.0.11.11
 EOF
-
-systemctl restart dnsmasq
 ```
-Now that we have it, let's also use DNSMasq for local resolution
+
+Let's start our DNSMasq Container (make sure to be in the directory where the docker-compose.yaml is available)
+```bash
+docker-compose up --build --detach
+```
+
+Last but not least, let's ensure the DNSMasq container will be presistent after reboot
+```bash
+podman generate systemd dnsmasq > /etc/systemd/system/dnsmasq-container.service
+systemctl daemon-reload
+systemctl enable --now dnsmasq-container.service
+```
+
+Now that we have it, we can also use DNSMasq for local resolution
 
 ```bash
 nmcli connection modify ens160 ipv4.dns 127.0.0.1
 nmcli connection modify ens160 ipv4.dns-search ocp4.bm.nfv.io
 ```
+
+Let's move then to the configuration of NTP through Chrony
+
+* Allow Chrony to provide NTP to any host in the `DPG110 - Baremetal` Network
+* If running, restart the service
+* If not configured to start at boot, enable and start it now
+
+```bash
+echo "allow 10.0.11.0/27" | tee -a /etc/chrony.conf
+systemctl is-active chronyd && systemctl restart chronyd
+systemctl is-enabled chronyd || systemctl enable --now chronyd
+```
+
 Let's configure routing capability
 
 * Associate the `External` zone to `ens160` (connected to `DPG178 - Home` with Internet access)
