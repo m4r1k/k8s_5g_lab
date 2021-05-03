@@ -43,6 +43,8 @@ interface-name=bond0
 [bond]
 miimon=1
 mode=802.3ad
+[802-3-ethernet]
+mtu=9000
 [ipv4]
 method=disabled
 [ipv6]
@@ -57,6 +59,8 @@ type=ethernet
 interface-name=eno2
 master=bond0
 slave-type=bond
+[802-3-ethernet]
+mtu=9000
 ```
 
 Follows the `bond0-slave-2.nmconnection` config file for the second slave interface
@@ -67,6 +71,8 @@ type=ethernet
 interface-name=eno3
 master=bond0
 slave-type=bond
+[802-3-ethernet]
+mtu=9000
 ```
 
 Follows the `bond0.110.nmconnection` config file for the VLAN interface of the Baremetal Network, a few things to notice:
@@ -83,6 +89,29 @@ multi-connect=1
 flags=1
 id=110
 parent=bond0
+[ipv4]
+may-fail=false
+method=auto
+[ipv6]
+method=disabled
+```
+
+If the `bond0` is directly connected to the `br-ex` (such as when doing `virtualmedia` deployments), you need to enable the IP connectivity on it. This translates to merging the `bond0.nmconnection` and `bond0.110.nmconnection` minus the VLAN aspects. As an example, I also changed the Bond mode to `active-backup` to also reflect the primary interface configuration:
+- `multi-connect=1` is required to migrate the interface under OVS's `br-ex` without any issue
+- IPv4 `method=auto` to enable DHCP
+- IPv6 `method=disabled` to disable DHCP
+```ini
+[connection]
+id=bond0
+type=bond
+interface-name=bond0
+multi-connect=1
+[bond]
+miimon=1
+mode=active-backup
+primary=eno2
+[802-3-ethernet]
+mtu=9000
 [ipv4]
 may-fail=false
 method=auto
