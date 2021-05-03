@@ -91,7 +91,7 @@ method=disabled
 ```
 
 ## CoreOS Image Customization
-Okay, here the details on Internet are even less available. Simply put, CoreOS has a [facility to customize](https://github.com/coreos/fedora-coreos-config/blob/stable/overlay.d/05core/usr/lib/dracut/modules.d/35coreos-network/coreos-copy-firstboot-network.sh) the networking. All we need to do is copying the `nmconnection` config files in the [boot of the CoreOS image](https://github.com/coreos/fedora-coreos-config/blob/stable/overlay.d/05core/usr/lib/dracut/modules.d/35coreos-network/coreos-copy-firstboot-network.sh#L10). *This last bit was quite hard to figure out* -.-'
+Okay, here the details on Internet are even less available. Simply put, CoreOS has a facility named [coreos-copy-firstboot-network](https://github.com/coreos/fedora-coreos-config/blob/stable/overlay.d/05core/usr/lib/dracut/modules.d/35coreos-network/coreos-copy-firstboot-network.sh) to customize the CoreOS networking during its first boot. All we need to do is copying the `nmconnection` config files in the [boot of the CoreOS image](https://github.com/coreos/fedora-coreos-config/blob/stable/overlay.d/05core/usr/lib/dracut/modules.d/35coreos-network/coreos-copy-firstboot-network.sh#L10). *This last bit was quite hard to figure out* -.-'
 
 First things first, let's download the RHCOS Cluster OS Image (called `rhcos-openstack.x86_64.qcow2.gz`) which is available at https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/
 
