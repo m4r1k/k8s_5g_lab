@@ -213,6 +213,7 @@ platform:
     clusterOSImage: http://10.0.11.30:8080/rhcos-4.7.0-x86_64-openstack-bonding-v1.x86_64.qcow2.gz?sha256=43cea5505284d429b15a1c50e1768035685b363329a4e1c8e8e3b65ee82dae1c
 ```
 
+## Final result (VLAN + Bond)
 And how does it look the final result? Well, we can see that inside the `br-ex` we have the `bond0.110` Linux interface and also that `br-ex` has not only the baremetal IP Address but also the `bond0` MAC Address.
 
 ```console
@@ -222,19 +223,46 @@ And how does it look the final result? Well, we can see that inside the `br-ex` 
         Port bond0.110
             Interface bond0.110
                 type: system
-        Port patch-br-ex_vh10-to-br-int
-            Interface patch-br-ex_vh10-to-br-int
+        Port patch-br-ex_openshift-worker-cnf-1-to-br-int
+            Interface patch-br-ex_openshift-worker-cnf-1-to-br-int
                 type: patch
-                options: {peer=patch-br-int-to-br-ex_vh10}
+                options: {peer=patch-br-int-to-br-ex_openshift-worker-cnf-1}
         Port br-ex
             Interface br-ex
                 type: internal
     ovs_version: "2.13.2"
 [root@openshift-worker-cnf-1 ~]# ip address show br-ex
-9: br-ex: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+9: br-ex: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9000 qdisc noqueue state UNKNOWN group default qlen 1000
     link/ether ec:f4:bb:dd:96:29 brd ff:ff:ff:ff:ff:ff
     inet 10.0.11.11/27 brd 10.0.11.31 scope global dynamic noprefixroute br-ex
        valid_lft 3082sec preferred_lft 3082sec
     inet6 fe80::502b:19fd:a08d:f14f/64 scope link noprefixroute
+       valid_lft forever preferred_lft forever
+```
+
+## Final result (Bond-only)
+Similar as before, the `br-ex` is directly connected to the `bond0`
+
+```console
+[root@openshift-worker-cnf-1 ~]# ovs-vsctl show
+<SNIP>
+    Bridge br-ex
+        Port bond0
+            Interface bond0
+                type: system
+        Port patch-br-ex_openshift-worker-cnf-1-to-br-int
+            Interface patch-br-ex_openshift-worker-cnf-1-to-br-int
+                type: patch
+                options: {peer=patch-br-int-to-br-ex_openshift-worker-cnf-1}
+        Port br-ex
+            Interface br-ex
+                type: internal
+    ovs_version: "2.13.4"
+[root@openshift-worker-cnf-1 ~]# ip address show br-ex
+9: br-ex: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9000 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether ec:f4:bb:dd:96:29 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.11.11/27 brd 10.0.11.31 scope global dynamic noprefixroute br-ex
+       valid_lft 3082sec preferred_lft 2002sec
+    inet6 fe80::a540:d8f4:c430:5129/64 scope link noprefixroute
        valid_lft forever preferred_lft forever
 ```
