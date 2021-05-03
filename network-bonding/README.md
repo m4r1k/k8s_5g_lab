@@ -106,7 +106,12 @@ guestfish --ro -a ~/rhcos-4.7.0-x86_64-openstack.x86_64.qcow2 run : findfs-label
 ```
 In the output, you will have the boot device such as **`/dev/sda3`**
 
-Once done, let's create the folder and copy all our `nmconnection` file
+At this point we need to make sure any `nmconnection` files have the correct permissions `0600` otherwise NetworkManager will fail to load the configs (`NetworkManager <SNIP> keyfile: load: "/etc/NetworkManager/system-connections-merged/bond0-slave-2.nmconnection": failed to load connection: File permissions (100644) are insecure`)
+```bash
+chmod 0600 *.nmconnection
+```
+
+Once done, let's create the folder in the boot device and copy all our `nmconnection` files
 ```bash
 guestfish -a ~/rhcos-4.7.0-x86_64-openstack.x86_64.qcow2 \
   -m /dev/sda3 \
