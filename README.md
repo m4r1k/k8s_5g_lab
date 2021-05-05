@@ -317,18 +317,17 @@ Instead of installing whatever CentOS Stream provides, let's run it inside a con
 
 ```Dockerfile
 FROM alpine:3.13
-LABEL maintainer="federico.iezzi@gmail.com"
 
-# fetch DNSMasq
+# Install DNSMasq
 # https://git.alpinelinux.org/aports/tree/main/dnsmasq/APKBUILD?h=3.13-stable
 RUN apk update \
         && apk --no-cache add dnsmasq=2.85-r2
 
-#configure dnsmasq
+# Configure DNSMasq
 RUN mkdir -p /etc/default/
 RUN printf "ENABLED=1\nIGNORE_RESOLVCONF=yes" > /etc/default/dnsmasq
 
-#run it
+# Run it!
 ENTRYPOINT ["dnsmasq","--no-daemon"]
 ```
 
